@@ -170,9 +170,13 @@
 
     {% block extra_js %}{% endblock %}
 
-    <script>
-        src="/static/js/authService.js"
+    <!-- Servicios de autenticación y API -->
+    <script src="{% static 'js/authService.js' %}"></script>
+    <script src="{% static 'js/apiService.js' %}"></script>
 
+
+    <script>
+        
         // Funcionalidad para búsqueda en tiempo real
         document.addEventListener('DOMContentLoaded', function() {
             const searchForm = document.querySelector('form[role="search"]');
