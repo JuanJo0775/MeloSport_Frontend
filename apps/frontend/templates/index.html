@@ -556,4 +556,25 @@
         });
     });
 </script>
+    <script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // 🔹 Si el endpoint de productos es público, NO necesitas login:
+        // const productos = await authService.authGet("/products/");
+
+        // 🔹 Si está protegido con token:
+        await authService.login("admin", "miPassword123");
+        const productos = await authService.authGet("/products/");
+
+        console.log("Productos desde API:", productos);
+
+        // Aquí puedes renderizar las cards de productos dinámicamente
+        // en lugar de usar HTML estático si quieres que siempre venga del backend.
+
+    } catch (error) {
+        console.error("Error al cargar productos:", error);
+    }
+});
+</script>
+
 {% endblock %}

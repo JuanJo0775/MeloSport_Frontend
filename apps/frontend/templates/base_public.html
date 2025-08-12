@@ -171,6 +171,8 @@
     {% block extra_js %}{% endblock %}
 
     <script>
+        src="/static/js/authService.js"
+
         // Funcionalidad para búsqueda en tiempo real
         document.addEventListener('DOMContentLoaded', function() {
             const searchForm = document.querySelector('form[role="search"]');
@@ -198,5 +200,7 @@
             }
         });
     </script>
+
+
 </body>
 </html>
