@@ -2,8 +2,7 @@
 // API Service - MeloSport Public
 // ===============================
 
-// Cambia la URL base al dominio real del backoffice
-const API_BASE_URL = "https://backoffice.example.com/api";
+const API_BASE_URL = "https://backoffice.example.com/api"; // Ajusta al dominio real
 
 // --- Obtener carrusel ---
 async function fetchCarousel() {
@@ -28,7 +27,6 @@ function renderCarousel(items) {
     innerContainer.innerHTML = "";
 
     items.forEach((item, index) => {
-        // Botones de indicador
         const indicator = document.createElement("button");
         indicator.type = "button";
         indicator.setAttribute("data-bs-target", "#promocionesCarousel");
@@ -37,7 +35,6 @@ function renderCarousel(items) {
         if (index === 0) indicator.classList.add("active");
         indicatorsContainer.appendChild(indicator);
 
-        // Elemento del carrusel
         const carouselItem = document.createElement("div");
         carouselItem.classList.add("carousel-item", ...(index === 0 ? ["active"] : []));
 
@@ -62,38 +59,91 @@ function renderCarousel(items) {
     });
 }
 
-// --- Enviar mensaje de contacto ---
-async function sendContactMessage(formData) {
+// --- Obtener productos ---
+async function fetchProducts() {
     try {
-        const response = await fetch(`${API_BASE_URL}/contacto/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData)
-        });
-
-        if (!response.ok) throw new Error("Error al enviar el mensaje");
-        alert("✅ Mensaje enviado correctamente.");
+        const response = await fetch(`${API_BASE_URL}/products/`);
+        if (!response.ok) throw new Error("Error al obtener productos");
+        const data = await response.json();
+        renderProducts(data);
     } catch (error) {
-        console.error("❌ Error enviando mensaje de contacto:", error);
-        alert("❌ Ocurrió un error al enviar el mensaje. Intenta de nuevo.");
+        console.error("❌ Error cargando productos:", error);
+    }
+}
+
+// --- Renderizar productos ---
+function renderProducts(products) {
+    const container = document.getElementById("productosContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    products.forEach(product => {
+        const card = document.createElement("div");
+        card.className = "col-md-3 mb-4 fade-in";
+
+        const categoryName = product.category?.name || "Sin categoría";
+        const imageUrl = product.image || "/static/img/no-image.png";
+
+        card.innerHTML = `
+            <div class="card producto-card h-100 shadow-sm">
+                <img src="${imageUrl}" class="card-img-top" alt="${product.name}">
+                <div class="card-body">
+                    <h5 class="card-title">${product.name}</h5>
+                    <p class="card-text text-muted">${categoryName}</p>
+                    <p class="fw-bold text-success">$${product.price}</p>
+                    <a href="/productos/${product.id}" class="btn btn-primary w-100">Ver Detalle</a>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+// --- Obtener categorías ---
+async function fetchCategories() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/categories/`);
+        if (!response.ok) throw new Error("Error al obtener categorías");
+        const data = await response.json();
+        renderCategories(data);
+    } catch (error) {
+        console.error("❌ Error cargando categorías:", error);
+    }
+}
+
+// --- Renderizar categorías ---
+function renderCategories(categories) {
+    const container = document.getElementById("categoriasContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    categories.forEach(category => {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-outline-primary m-1";
+        btn.innerText = category.name;
+        btn.addEventListener("click", () => filterByCategory(category.id));
+        container.appendChild(btn);
+    });
+}
+
+// --- Filtrar productos por categoría ---
+async function filterByCategory(categoryId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/products/?category=${categoryId}`);
+        if (!response.ok) throw new Error("Error al filtrar productos");
+        const data = await response.json();
+        renderProducts(data);
+    } catch (error) {
+        console.error("❌ Error filtrando productos:", error);
     }
 }
 
 // --- Inicializar ---
 document.addEventListener("DOMContentLoaded", () => {
     fetchCarousel();
-
-    const contactForm = document.querySelector("#contactForm");
-    if (contactForm) {
-        contactForm.addEventListener("submit", (e) => {
-            e.preventDefault();
-            const formData = {
-                name: contactForm.name.value,
-                email: contactForm.email.value,
-                phone: contactForm.phone.value,
-                message: contactForm.message.value
-            };
-            sendContactMessage(formData);
-        });
-    }
+    fetchProducts();
+    fetchCategories();
 });
