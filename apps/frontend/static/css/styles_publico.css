@@ -1,4 +1,15 @@
 /* Estilos generales */
+:root {
+  --bs-primary: #0d6efd;   /* Azul MeloSport (ajústalo) */
+  --bs-secondary: #6c757d;
+  --bs-success: #198754;
+  --bs-warning: #ffc107;
+  --bs-danger: #dc3545;
+  --bs-info: #0dcaf0;
+  --bs-dark: #212529;
+  --ms-font: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
 body {
     font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     line-height: 1.6;

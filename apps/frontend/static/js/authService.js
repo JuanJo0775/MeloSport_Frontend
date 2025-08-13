@@ -2,7 +2,7 @@
 // Servicio de Autenticación API MeloSport
 // ===============================
 
-const API_BASE_URL = "https://backoffice.example.com/api"; // Cambia por tu dominio real
+const API_BASE_URL = "http://127.0.0.1:8000/api";
 const TOKEN_KEY = "access";
 const REFRESH_KEY = "refresh";
 

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="../static/css/styles_publico.css">
+    <link rel="stylesheet" href="{% static 'css/styles_publico.css' %}">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -33,7 +34,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#">Inicio</a>
+                        <a class="nav-link" href="{% url 'index' %}">Inicio</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#productos">Productos</a>
@@ -54,6 +55,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#contacto">Contacto</a>
                     </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'nosotros' %}">Nosotros</a>
+                    </li>
+
                 </ul>
 
                 <!-- Barra de búsqueda -->
@@ -171,7 +177,7 @@
     {% block extra_js %}{% endblock %}
 
     <!-- Servicios de autenticación y API -->
-    <script src="{% static 'js/authService.js' %}"></script>
+  <!--  <script src="{% static 'js/authService.js' %}"></script> -->
     <script src="{% static 'js/apiService.js' %}"></script>
 
 

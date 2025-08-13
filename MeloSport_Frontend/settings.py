@@ -38,7 +38,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-AUTH_USER_MODEL = 'users.User'
+#AUTH_USER_MODEL = 'users.User'
 
 
 
@@ -77,7 +77,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'MeloSport.urls'
+ROOT_URLCONF = "MeloSport_Frontend.urls"
 
 TEMPLATES = [
     {
@@ -106,25 +106,30 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Para collectstatic
 # Esto permite que Django busque en cada app
 
 
-WSGI_APPLICATION = 'MeloSport.wsgi.application'
+WSGI_APPLICATION = "MeloSport_Frontend.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Frontend (melosport_front)
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.postgresql',
+#        'NAME': 'melosport_db',
+#        'USER': 'melosport_front',
+#        'PASSWORD': 'front_seguro_321',
+#        'HOST': 'localhost',
+#        'PORT': '5432',
+#    }
+#}
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'melosport_db',
-        'USER': 'melosport_front',
-        'PASSWORD': 'front_seguro_321',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
