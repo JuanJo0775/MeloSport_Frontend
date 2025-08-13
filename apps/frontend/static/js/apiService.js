@@ -122,20 +122,7 @@ function renderCarousel(items) {
   });
 }
 
-// --- Obtener productos ---
-async function fetchProducts(limit = 12) {
-  const container = document.getElementById("productosContainer");
-  try {
-    const res = await fetch(`${API_BASE_URL}/products/?limit=${limit}`);
-    if (!res.ok) throw new Error("Error al obtener productos");
-    const data = await res.json();
-    const items = data.results || data; // <-- soporte results o array
-    renderProducts(items);
-  } catch (err) {
-    console.error("❌ Productos:", err);
-    showErrorPlaceholder(container, "No pudimos cargar los productos ahora mismo.");
-  }
-}
+
 
 // --- Renderizar productos ---
 function renderProducts(products) {
@@ -147,43 +134,64 @@ function renderProducts(products) {
     const col = document.createElement("div");
     col.className = "col-12 col-sm-6 col-lg-3";
 
-    const categoryName = product.category?.name || "Sin categoría";
+    // Obtener imagen con todos los casos contemplados
+    const imageUrl = getImageUrlFromProduct(product);
 
-    // --- Manejo de imagen en 3 casos ---
-    let imageUrl;
-    if (product.image) {
-      if (product.image.startsWith("http")) {
-        // Caso 1: URL absoluta
-        imageUrl = product.image;
-      } else if (product.image.startsWith("/")) {
-        // Caso 2: Ruta relativa → agregar dominio backend
-        const backendBase = API_BASE_URL.replace("/api", "");
-        imageUrl = backendBase + product.image;
-      } else {
-        // Caso raro: sin slash inicial, tratamos como relativa
-        const backendBase = API_BASE_URL.replace("/api", "");
-        imageUrl = backendBase + "/" + product.image;
-      }
-    } else {
-      // Caso 3: sin imagen → placeholder
-      imageUrl = "https://via.placeholder.com/300x300?text=Sin+Imagen";
+    // Categoría principal (si no, fallback)
+    const categoryName = (product.categories && product.categories.length)
+      ? product.categories[0].name
+      : (product.category?.name || "Sin categoría");
+
+    // Tallas (únicas y filtradas)
+    let sizesText = "";
+    if (product.variants && product.variants.length) {
+      const sizes = [...new Set(product.variants.map(v => v.size).filter(Boolean))];
+      if (sizes.length) sizesText = sizes.join(", ");
     }
 
+    // Precio formateado
     const price = (product.price ?? 0).toLocaleString("es-CO");
 
     col.innerHTML = `
       <div class="card producto-card h-100 shadow-sm">
-        <img src="${imageUrl}" class="card-img-top" alt="${product.name}">
+        <img src="${imageUrl}" class="card-img-top" alt="${product.name}"
+             onerror="this.onerror=null;this.src='https://via.placeholder.com/300x300?text=Sin+Imagen'">
         <div class="card-body">
           <h5 class="card-title">${product.name}</h5>
           <p class="card-text text-muted">${categoryName}</p>
+          ${ sizesText ? `<p class="small text-secondary">Tallas: ${sizesText}</p>` : "" }
           <p class="fw-bold text-success">$${price}</p>
           <a href="/productos/${product.id}" class="btn btn-primary w-100">Ver Detalle</a>
         </div>
       </div>
     `;
+
     container.appendChild(col);
   });
+}
+
+
+function getImageUrlFromProduct(product) {
+  if (product.main_image) return product.main_image;
+
+  if (product.images && product.images.length) {
+    const main = product.images.find(i => i.is_main) || product.images[0];
+    if (main.image_url) return main.image_url;
+    if (main.image) {
+      const backendBase = API_BASE_URL.replace("/api", "");
+      if (main.image.startsWith("http")) return main.image;
+      if (main.image.startsWith("/")) return backendBase + main.image;
+      return backendBase + "/" + main.image;
+    }
+  }
+
+  if (product.image) {
+    if (product.image.startsWith("http")) return product.image;
+    const backendBase = API_BASE_URL.replace("/api", "");
+    return product.image.startsWith("/") ? backendBase + product.image : backendBase + "/" + product.image;
+  }
+
+  return "https://via.placeholder.com/300x300?text=Sin+Imagen";
 }
 
 
@@ -213,7 +221,8 @@ function renderCategories(categories) {
   allBtn.addEventListener("click", () => filterByCategory(null));
   container.appendChild(allBtn);
 
-  categories.forEach(category => {
+  const parentCats = categories.filter(cat => !cat.parent);
+  parentCats.forEach(category => {
     const btn = document.createElement("button");
     btn.className = "btn btn-outline-primary";
     btn.innerText = category.name;
@@ -221,6 +230,7 @@ function renderCategories(categories) {
     container.appendChild(btn);
   });
 }
+
 
 async function filterByCategory(categoryId) {
   const container = document.getElementById("productosContainer");
@@ -239,9 +249,64 @@ async function filterByCategory(categoryId) {
   }
 }
 
+function renderCategoryFilters(categories) {
+  const container = document.getElementById("categoriasContainer");
+  container.innerHTML = "";
+
+  categories.filter(cat => !cat.parent).forEach(cat => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-check";
+    wrapper.innerHTML = `
+      <input class="form-check-input cat-checkbox" type="checkbox" value="${cat.id}" id="cat-${cat.id}">
+      <label class="form-check-label" for="cat-${cat.id}">${cat.name}</label>
+    `;
+    container.appendChild(wrapper);
+  });
+
+  container.addEventListener('change', () => {
+    const selected = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(i => i.value);
+    fetchProducts({ limit: 12, categories: selected });
+  });
+}
+
+async function fetchProducts({ limit = 12, ordering = null, categories = [] } = {}) {
+  const container = document.getElementById("productosContainer");
+  try {
+    const params = new URLSearchParams();
+    params.set('limit', limit);
+    if (ordering) params.set('ordering', ordering);
+    if (categories && categories.length) params.set('categories', categories.join(','));
+    const res = await fetch(`${API_BASE_URL}/products/?${params.toString()}`);
+    if (!res.ok) throw new Error("Error al obtener productos");
+    const data = await res.json();
+    const items = data.results || data;
+    renderProducts(items);
+  } catch (err) {
+    console.error("❌ Productos:", err);
+    showErrorPlaceholder(container, "No pudimos cargar los productos ahora mismo.");
+  }
+}
+
 // --- Inicializar ---
 document.addEventListener("DOMContentLoaded", () => {
   fetchCarousel();
   fetchProducts(12);
   fetchCategories();
+
+  // Listener para ordenSelect
+  const ordenSelect = document.getElementById('ordenSelect');
+  if (ordenSelect) {
+    ordenSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      const map = {
+        'precio-asc': 'price',
+        'precio-desc': '-price',
+        'nombre': 'name',
+        'disponibilidad': '-_stock'
+      };
+      const ordering = map[val] || null;
+      fetchProducts({ limit: 12, ordering }); // <-- necesita versión de fetchProducts con params
+    });
+  }
 });
+
