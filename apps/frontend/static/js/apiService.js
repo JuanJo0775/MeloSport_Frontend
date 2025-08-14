@@ -134,41 +134,101 @@ function renderProducts(products) {
     const col = document.createElement("div");
     col.className = "col-12 col-sm-6 col-lg-3";
 
-    // Obtener imagen con todos los casos contemplados
     const imageUrl = getImageUrlFromProduct(product);
-
-    // Categoría principal (si no, fallback)
-    const categoryName = (product.categories && product.categories.length)
+    const categoryName = (product.categories?.length)
       ? product.categories[0].name
       : (product.category?.name || "Sin categoría");
+    const absoluteCategoryName = product.absolute_category?.nombre || null;
 
-    // Tallas (únicas y filtradas)
-    let sizesText = "";
-    if (product.variants && product.variants.length) {
-      const sizes = [...new Set(product.variants.map(v => v.size).filter(Boolean))];
-      if (sizes.length) sizesText = sizes.join(", ");
-    }
-
-    // Precio formateado
     const price = (product.price ?? 0).toLocaleString("es-CO");
 
+    // Obtener variantes
+    const sizes = [...new Set(product.variants?.map(v => v.size).filter(Boolean))];
+    const colors = [...new Set(product.variants?.map(v => v.color).filter(Boolean))];
+
+    // Stock total
+    const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
+
+    // HTML tarjeta
     col.innerHTML = `
-      <div class="card producto-card h-100 shadow-sm">
-        <img src="${imageUrl}" class="card-img-top" alt="${product.name}"
-             onerror="this.onerror=null;this.src='https://via.placeholder.com/300x300?text=Sin+Imagen'">
+      <div class="card producto-card h-100 shadow-bottom">
+        <div class="image-container">
+          <img src="${imageUrl}" class="card-img-top" alt="${product.name}"
+               onerror="this.onerror=null;this.src='https://via.placeholder.com/300x300?text=Sin+Imagen'">
+          ${ absoluteCategoryName ? `<span class="badge badge-absolute badge-over-image">${absoluteCategoryName}</span>` : "" }
+        </div>
         <div class="card-body">
           <h5 class="card-title">${product.name}</h5>
           <p class="card-text text-muted">${categoryName}</p>
-          ${ sizesText ? `<p class="small text-secondary">Tallas: ${sizesText}</p>` : "" }
-          <p class="fw-bold text-success">$${price}</p>
+
+          ${ sizes.length > 1 ? `
+            <div class="sizes-container">
+              ${sizes.map(size => `<span class="size-box" data-size="${size}">${size}</span>`).join("")}
+            </div>` 
+            : sizes.length === 1 ? `<p><strong>Talla:</strong> ${sizes[0]}</p>` : ""
+          }
+
+          ${ colors.length > 1 ? `
+            <div class="variants-container">
+              ${colors.map(color => `<span class="variant-box" data-color="${color}">${color}</span>`).join("")}
+            </div>` 
+            : colors.length === 1 ? `<p><strong>Color:</strong> ${colors[0]}</p>` : ""
+          }
+
+          <p class="fw-bold text-success mt-2">$${price}</p>
+          <p class="stock-text"><strong>Stock:</strong> ${totalStock} unidades</p>
           <a href="/productos/${product.id}" class="btn btn-primary w-100">Ver Detalle</a>
         </div>
       </div>
     `;
 
+    // Eventos para selección/deselección y stock filtrado
+    const cardEl = col.querySelector(".card");
+    let selectedSize = null;
+    let selectedColor = null;
+
+    cardEl.querySelectorAll(".size-box").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (selectedSize === btn.dataset.size) {
+          selectedSize = null; // deseleccionar
+          btn.classList.remove("active");
+        } else {
+          selectedSize = btn.dataset.size;
+          cardEl.querySelectorAll(".size-box").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+        }
+        updateStock();
+      });
+    });
+
+    cardEl.querySelectorAll(".variant-box").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (selectedColor === btn.dataset.color) {
+          selectedColor = null; // deseleccionar
+          btn.classList.remove("active");
+        } else {
+          selectedColor = btn.dataset.color;
+          cardEl.querySelectorAll(".variant-box").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+        }
+        updateStock();
+      });
+    });
+
+    function updateStock() {
+      let filtered = product.variants;
+      if (selectedSize) filtered = filtered.filter(v => v.size === selectedSize);
+      if (selectedColor) filtered = filtered.filter(v => v.color === selectedColor);
+      const stockFiltered = filtered.reduce((sum, v) => sum + (v.stock || 0), 0);
+      cardEl.querySelector(".stock-text").innerHTML =
+        `<strong>Stock:</strong> ${stockFiltered} unidades (total: ${totalStock})`;
+
+    }
+
     container.appendChild(col);
   });
 }
+
 
 
 function getImageUrlFromProduct(product) {
@@ -279,7 +339,10 @@ async function fetchProducts({ limit = 12, ordering = null, categories = [] } = 
     const res = await fetch(`${API_BASE_URL}/products/?${params.toString()}`);
     if (!res.ok) throw new Error("Error al obtener productos");
     const data = await res.json();
-    const items = data.results || data;
+    const items = (data.results || data).map(p => ({
+        ...p,
+        absolute_category: p.absolute_category || null
+    }));
     renderProducts(items);
   } catch (err) {
     console.error("❌ Productos:", err);
