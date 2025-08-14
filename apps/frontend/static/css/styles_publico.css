@@ -236,22 +236,45 @@ footer {
 /* Contenedores para tallas y colores */
 .sizes-container,
 .variants-container {
-    margin-top: 0.5em;
+    margin-top: 0.75em;
+    margin-bottom: 0.75em;
     display: flex;
     flex-wrap: wrap;
     gap: 0.4em;
 }
 
-/* Tamaño más grande para tallas y variantes */
-.size-box,
-.variant-box {
+.card-body p {
+    margin-bottom: 0.75em;
+}
+
+/* Tallas: tamaño fijo */
+.size-box {
     display: inline-flex;
     justify-content: center;
     align-items: center;
     width: 42px;
     height: 42px;
-    background-color: #f8f9fa; /* Gris claro por defecto */
-    color: #212529; /* Texto negro */
+    background-color: #f8f9fa;
+    color: #212529;
+    border: 1px solid #ced4da;
+    font-weight: bold;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Variantes de color: ancho adaptable */
+.variant-box {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 10px; /* espacio lateral */
+    height: 42px;
+    min-width: 42px; /* asegura tamaño mínimo */
+    background-color: #f8f9fa;
+    color: #212529;
     border: 1px solid #ced4da;
     font-weight: bold;
     border-radius: 4px;
@@ -264,18 +287,19 @@ footer {
 /* Estado activo */
 .size-box.active,
 .variant-box.active {
-    background-color: #6c757d; /* Gris oscuro */
-    color: white !important;   /* Texto blanco */
+    background-color: #6c757d;
+    color: white !important;
     border-color: #6c757d;
 }
 
 /* Hover */
 .size-box:hover,
 .variant-box:hover {
-    background-color: #6c757d; /* Gris medio */
-    color: white; /* Texto blanco al pasar el mouse */
+    background-color: #6c757d;
+    color: white;
     transform: scale(1.05);
 }
+
 
 /* Sombra inferior más suave y localizada */
 .shadow-bottom {
