@@ -1,40 +1,37 @@
 console.log("publicHome.js cargado correctamente");
 
-let categoriasSeleccionadas = [];
-let absolutasSeleccionadas = []; // para filtros de categorías absolutas si se usan
+// Inicializar variables globales si no existen (comparten con apiService.js)
+window.categoriasSeleccionadas = window.categoriasSeleccionadas || [];
+window.absolutasSeleccionadas = window.absolutasSeleccionadas || [];
 
-
-// API
+// ======================== API ========================
 
 function getCategoriasTree() {
   return fetch(`${API_BASE_URL}/categories-tree/`)
     .then(res => {
-      if (!res.ok) {
-        throw new Error("Error al obtener categorías padre/hija");
-      }
+      if (!res.ok) throw new Error("Error al obtener categorías padre/hija");
       return res.json();
     });
 }
 
-
-// Selección de categorías
+// ======================== Selección de categorías ========================
 
 function toggleCategoria(id, element) {
   id = parseInt(id);
-  if (categoriasSeleccionadas.includes(id)) {
-    categoriasSeleccionadas = categoriasSeleccionadas.filter(c => c !== id);
+  if (window.categoriasSeleccionadas.includes(id)) {
+    window.categoriasSeleccionadas = window.categoriasSeleccionadas.filter(c => c !== id);
     element.classList.remove('active');
   } else {
-    categoriasSeleccionadas.push(id);
+    window.categoriasSeleccionadas.push(id);
     element.classList.add('active');
   }
 }
 
-
-// Render de categorías en modal
+// ======================== Render de categorías en modal ========================
 
 function renderCategorias(cats) {
   const cont = document.getElementById('listaCategorias');
+  if (!cont) return;
   cont.innerHTML = '';
 
   cats.forEach(parent => {
@@ -58,61 +55,62 @@ function renderCategorias(cats) {
   });
 }
 
-
-// Filtro del buscador
+// ======================== Filtro del buscador ========================
 
 document.addEventListener('DOMContentLoaded', function () {
   const modalCategorias = document.getElementById('modalCategorias');
 
-  // Cargar categorías cuando se abre el modal
-  modalCategorias.addEventListener('shown.bs.modal', function () {
-    getCategoriasTree()
-      .then(data => {
-        console.log("Categorías desde backend:", data);
-        renderCategorias(data);
-      })
-      .catch(err => console.error("Error cargando categorías:", err));
-  });
+  if (modalCategorias) {
+    modalCategorias.addEventListener('shown.bs.modal', function () {
+      getCategoriasTree()
+        .then(data => {
+          console.log("Categorías desde backend:", data);
+          renderCategorias(data);
+        })
+        .catch(err => console.error("Error cargando categorías:", err));
+    });
+  }
 
-  // Buscador
-  document.getElementById('searchCategorias').addEventListener('input', e => {
+// Buscador en modal
+const searchInput = document.getElementById('buscarCategoria'); // ID corregido
+if (searchInput) {
+  searchInput.addEventListener('input', e => {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('#listaCategorias .option-box').forEach(box => {
       const nombre = box.dataset.nombre || box.textContent;
-      if (!box.dataset.nombre) {
-        box.dataset.nombre = nombre;
-      }
+      if (!box.dataset.nombre) box.dataset.nombre = nombre;
+
       if (nombre.toLowerCase().includes(term)) {
         box.style.display = '';
-        if (term) {
-          box.innerHTML = nombre.replace(
-            new RegExp(`(${term})`, 'gi'),
-            '<mark>$1</mark>'
-          );
-        } else {
-          box.innerHTML = nombre;
-        }
+        box.innerHTML = term
+          ? nombre.replace(new RegExp(`(${term})`, 'gi'), '<mark>$1</mark>')
+          : nombre;
       } else {
         box.style.display = 'none';
       }
     });
   });
+}
 
-  // Botón aplicar
-  document.getElementById('aplicarCategorias').addEventListener('click', () => {
-    aplicarFiltroCategorias();
-  });
+  }
 
-  // Botón limpiar
-  document.getElementById('limpiarCategorias').addEventListener('click', () => {
-    categoriasSeleccionadas = [];
-    document.querySelectorAll('.option-box.active').forEach(el => el.classList.remove('active'));
-    cargarProductos();
-  });
+  const aplicarBtn = document.getElementById('aplicarCategorias');
+  if (aplicarBtn) {
+    aplicarBtn.addEventListener('click', aplicarFiltroCategorias);
+  }
+
+  const limpiarBtn = document.getElementById('limpiarCategorias');
+  if (limpiarBtn) {
+    limpiarBtn.addEventListener('click', () => {
+      window.categoriasSeleccionadas = [];
+      document.querySelectorAll('.option-box.active').forEach(el => el.classList.remove('active'));
+      cargarProductos();
+    });
+  }
 });
 
 
-// Aplicar filtro y cargar productos
+// ======================== Aplicar filtro y cargar productos ========================
 
 function aplicarFiltroCategorias() {
   cargarProductos();
@@ -121,12 +119,12 @@ function aplicarFiltroCategorias() {
 async function cargarProductos() {
   let url = `${API_BASE_URL}/products/?page=1`;
 
-  if (categoriasSeleccionadas.length) {
-    url += `&categories=${categoriasSeleccionadas.join(',')}`;
+  if (window.categoriasSeleccionadas.length) {
+    url += `&categories=${window.categoriasSeleccionadas.join(',')}`;
   }
 
-  if (absolutasSeleccionadas.length) {
-    url += `&absolute_categories=${absolutasSeleccionadas.join(',')}`;
+  if (window.absolutasSeleccionadas.length) {
+    url += `&absolute_categories=${window.absolutasSeleccionadas.join(',')}`;
   }
 
   try {
@@ -140,14 +138,12 @@ async function cargarProductos() {
       console.warn("⚠️ No se encontró la función renderProducts, mostrando datos en consola:");
       console.log(data.results);
     }
-
   } catch (err) {
     console.error('Error en cargarProductos:', err);
   }
 }
 
-
-// Render genérico de productos
+// ======================== Render genérico de productos ========================
 
 function renderProductosGenerico(productos) {
   const contenedor = document.getElementById('productosContainer');
@@ -155,6 +151,7 @@ function renderProductosGenerico(productos) {
     console.warn("⚠️ No se encontró contenedor de productos");
     return;
   }
+
   contenedor.innerHTML = '';
 
   if (!productos.length) {
@@ -167,7 +164,8 @@ function renderProductosGenerico(productos) {
     card.className = 'card m-2';
     card.style.width = '14rem';
     card.innerHTML = `
-      <img src="${prod.images && prod.images.length ? prod.images[0].image : '/static/img/no-image.png'}" class="card-img-top" alt="${prod.name}">
+      <img src="${prod.images && prod.images.length ? prod.images[0].image : '/static/img/no-image.png'}" 
+           class="card-img-top" alt="${prod.name}">
       <div class="card-body">
         <h5 class="card-title">${prod.name}</h5>
         <p class="card-text">$${prod.price}</p>

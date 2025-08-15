@@ -1,44 +1,94 @@
 {% extends "base_public.html" %}
+{% load static %}
 {% block title %}Nosotros - MeloSport{% endblock %}
 {% block description %}Conoce la misión, visión, principios y valores que inspiran a MeloSport.{% endblock %}
 
 {% block content %}
 <section class="container py-5">
-  <div class="row">
-    <div class="col-lg-8 mx-auto">
-      <h1 class="fw-bold mb-4">Sobre MeloSport</h1>
-      <p class="lead text-muted mb-4">
-        MeloSport es una empresa familiar que nace del legado del fútbol y del comercio en nuestro pueblo quindiano.
-        Nos inspira la memoria compartida a través del deporte, la fotografía y las tradiciones de nuestra tierra.
-        Trabajamos para hacer del deporte un camino accesible hacia el bienestar, la integración y el fortalecimiento del tejido social,
-        con un firme compromiso con nuestra comunidad y sus generaciones.
-      </p>
 
-      <h2 class="h4 fw-bold mt-4">Misión</h2>
+  <!-- Encabezado -->
+  <div class="text-center mb-5">
+    <h1 class="fw-bold display-5 text-primary">Sobre MeloSport</h1>
+    <p class="lead text-muted w-75 mx-auto">
+      MeloSport es una empresa familiar que nace del legado del fútbol y del comercio en nuestro pueblo quindiano.
+      Nos inspira la memoria compartida a través del deporte, la fotografía y las tradiciones de nuestra tierra.
+    </p>
+  </div>
+
+  <!-- Historia -->
+  <div class="row align-items-center mb-5">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+      <img src="{% static 'img/historia.png' %}" alt="Nuestra historia" class="img-fluid rounded shadow">
+    </div>
+    <div class="col-lg-6">
+      <h2 class="fw-bold text-secondary">Nuestra Historia</h2>
       <p class="text-muted">
-        En MeloSport, priorizamos la comercialización de artículos de calidad a precios justos,
-        y brindamos la posibilidad de conservar un recuerdo vivo de la historia que nos cuenta la fotografía.
+        Trabajamos para hacer del deporte un camino accesible hacia el bienestar, la integración y el fortalecimiento
+        del tejido social, con un firme compromiso con nuestra comunidad y sus generaciones.
       </p>
-
-      <h2 class="h4 fw-bold mt-4">Visión</h2>
-      <p class="text-muted">
-        Ser una tienda deportiva referente por conectar pasado y presente a través del deporte, la historia familiar y la fotografía,
-        honrando la herencia del fútbol que ha marcado a distintas generaciones.
-        Queremos consolidarnos como un espacio accesible, cercano y comprometido socialmente, que inspire a las personas a vivir activamente,
-        con valores, memoria y pasión.
-      </p>
-
-      <h2 class="h4 fw-bold mt-4">Principios y Valores</h2>
-      <ul class="text-muted">
-        <li><strong>Respeto:</strong> Valoramos y promovemos el respeto entre personas, generaciones y culturas.</li>
-        <li><strong>Pasión por el deporte:</strong> Nos inspira el fútbol y todas las disciplinas como herramientas de transformación social.</li>
-        <li><strong>Compromiso social:</strong> Participamos activamente en causas sociales, apoyamos el deporte local y fomentamos el acceso a oportunidades.</li>
-        <li><strong>Honestidad y precios justos:</strong> Basamos nuestro comercio en la transparencia, confianza y accesibilidad.</li>
-        <li><strong>Calidad y responsabilidad:</strong> Garantizamos durabilidad, funcionalidad y satisfacción en cada producto.</li>
-        <li><strong>Memoria y tradición:</strong> Honramos nuestras raíces familiares y el legado que nos une como generaciones.</li>
-        <li><strong>Innovación con sentido:</strong> Apostamos por un futuro mejor sin perder nuestra esencia.</li>
-      </ul>
     </div>
   </div>
+
+  <!-- Misión y Visión -->
+  <div class="row text-center g-4 mb-5">
+    <div class="col-md-6">
+      <div class="p-4 h-100 rounded shadow-sm bg-light border-start border-4 border-primary">
+        <i class="bi bi-bullseye text-primary display-5 mb-3"></i>
+        <h3 class="fw-semibold text-primary">Misión</h3>
+        <p class="text-muted">
+          Priorizar la comercialización de artículos de calidad a precios justos,
+          y brindar la posibilidad de conservar un recuerdo vivo de la historia que nos cuenta la fotografía.
+        </p>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="p-4 h-100 rounded shadow-sm bg-light border-start border-4 border-success">
+        <i class="bi bi-eye text-success display-5 mb-3"></i>
+        <h3 class="fw-semibold text-success">Visión</h3>
+        <p class="text-muted">
+          Ser una tienda deportiva referente por conectar pasado y presente a través del deporte y la historia familiar,
+          inspirando a las personas a vivir activamente con valores, memoria y pasión.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Principios y Valores -->
+  <div class="bg-light p-5 rounded shadow-sm">
+    <h2 class="fw-bold text-center mb-4 text-secondary">Principios y Valores</h2>
+    <div class="row g-4">
+      <div class="col-md-4 text-center">
+        <i class="bi bi-hand-thumbs-up-fill text-primary display-6 mb-2"></i>
+        <h5 class="fw-semibold">Respeto</h5>
+        <p class="text-muted">Promovemos el respeto entre personas, generaciones y culturas.</p>
+      </div>
+      <div class="col-md-4 text-center">
+        <i class="bi bi-trophy-fill text-warning display-6 mb-2"></i>
+        <h5 class="fw-semibold">Pasión por el deporte</h5>
+        <p class="text-muted">El deporte es nuestra herramienta para la transformación social.</p>
+      </div>
+      <div class="col-md-4 text-center">
+        <i class="bi bi-heart-fill text-danger display-6 mb-2"></i>
+        <h5 class="fw-semibold">Compromiso social</h5>
+        <p class="text-muted">Apoyamos el deporte local y fomentamos el acceso a oportunidades.</p>
+      </div>
+      <div class="col-md-4 text-center">
+        <i class="bi bi-cash-coin text-success display-6 mb-2"></i>
+        <h5 class="fw-semibold">Precios justos</h5>
+        <p class="text-muted">Comercio basado en transparencia, confianza y accesibilidad.</p>
+      </div>
+      <div class="col-md-4 text-center">
+        <i class="bi bi-award-fill text-info display-6 mb-2"></i>
+        <h5 class="fw-semibold">Calidad</h5>
+        <p class="text-muted">Garantizamos durabilidad y satisfacción en cada producto.</p>
+      </div>
+      <div class="col-md-4 text-center">
+        <i class="bi bi-lightbulb-fill text-warning display-6 mb-2"></i>
+        <h5 class="fw-semibold">Innovación</h5>
+        <p class="text-muted">Apostamos por el futuro sin perder nuestra esencia.</p>
+      </div>
+    </div>
+  </div>
+
 </section>
 {% endblock %}

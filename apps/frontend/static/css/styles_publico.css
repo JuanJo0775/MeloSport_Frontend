@@ -355,3 +355,61 @@ footer {
   border-color: #0d6efd;
 }
 
+.hover-opacity:hover { opacity: 0.8; }
+.hover-underline:hover { text-decoration: underline; }
+
+/**/
+
+/* Contenedor de lista de categorías */
+.categoria-lista {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Scrollbar minimalista */
+.categoria-lista::-webkit-scrollbar {
+  width: 6px;
+}
+.categoria-lista::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.15);
+  border-radius: 10px;
+}
+.categoria-lista::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0,0,0,0.3);
+}
+
+/* Estilo base para opciones */
+.option-box {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+}
+.option-box:hover {
+  background-color: #f1f1f1;
+  transform: translateX(3px);
+}
+.option-box.active {
+  background-color: #333;
+  color: #fff;
+  border-color: #222;
+}
+
+/* Subcategorías */
+.option-child {
+  margin-left: 1.5rem;
+  background-color: #fcfcfc;
+}
+.option-child.active {
+  background-color: #555;
+  color: #fff;
+}
+
+
+#listaCategorias { scroll-behavior: smooth; }
+.option-parent { font-weight: 600; }

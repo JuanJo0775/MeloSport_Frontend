@@ -3,12 +3,15 @@
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 // Estado global de filtros
-let categoriasSeleccionadas = [];   // IDs seleccionados desde el modal (padre/hija)
-let absolutasSeleccionadas = [];    // IDs seleccionados desde la barra de absolutas
+window.categoriasSeleccionadas = window.categoriasSeleccionadas || [];   // IDs seleccionados desde el modal (padre/hija)
+window.absolutasSeleccionadas = window.absolutasSeleccionadas || [];    // IDs seleccionados desde la barra de absolutas
+window.terminoBusqueda = window.terminoBusqueda || "";
+window.criterioOrden = window.criterioOrden || "";
 
-// -------------------------
+
+
 // Utilidades
-// -------------------------
+
 function showErrorPlaceholder(container, message) {
   if (!container) return;
   container.innerHTML = `
@@ -20,9 +23,20 @@ function showErrorPlaceholder(container, message) {
 
 function safeText(x) { return (x === null || typeof x === "undefined") ? "" : x; }
 
-// -------------------------
+// Texto (normalización para búsquedas)
+
+// Texto (normalización para búsquedas)
+function normalizeText(s) {
+  return (s || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // quita acentos
+}
+
+
 // CARRUSEL
-// -------------------------
+
 async function fetchCarousel() {
   const carousel = document.getElementById("promocionesCarousel");
   try {
@@ -107,17 +121,23 @@ function renderCarousel(items) {
   });
 }
 
-// -------------------------
+
 // PRODUCTOS (carga y render)
-// -------------------------
+
 async function cargarProductos() {
   let url = `${API_BASE_URL}/products/?page=1`;
 
-  if (categoriasSeleccionadas && categoriasSeleccionadas.length) {
+  if (categoriasSeleccionadas.length) {
     url += `&categories=${categoriasSeleccionadas.join(",")}`;
   }
-  if (absolutasSeleccionadas && absolutasSeleccionadas.length) {
+  if (absolutasSeleccionadas.length) {
     url += `&absolute_categories=${absolutasSeleccionadas.join(",")}`;
+  }
+  if (terminoBusqueda.trim() !== "") {
+    url += `&search=${encodeURIComponent(terminoBusqueda.trim())}`;
+  }
+  if (criterioOrden) {
+    url += `&ordering=${criterioOrden}`;
   }
 
   try {
@@ -132,6 +152,7 @@ async function cargarProductos() {
     showErrorPlaceholder(container, "No pudimos cargar los productos ahora.");
   }
 }
+
 
 function renderProducts(products) {
   const container = document.getElementById("productosContainer");
@@ -239,9 +260,9 @@ function renderProducts(products) {
   });
 }
 
-// -------------------------
+
 // Helpers imagen
-// -------------------------
+
 function getImageUrlFromProduct(product) {
   if (!product) return "https://via.placeholder.com/300x300?text=Sin+Imagen";
   if (product.main_image) return product.main_image;
@@ -258,9 +279,9 @@ function getImageUrlFromProduct(product) {
   return "https://via.placeholder.com/300x300?text=Sin+Imagen";
 }
 
-// -------------------------
+
 // CATEGORÍAS ABSOLUTAS (barra principal)
-// -------------------------
+
 async function fetchAbsoluteCategories() {
   const container = document.getElementById("categoriasContainer");
   if (!container) return;
@@ -340,9 +361,9 @@ function renderAbsoluteCategoriesBar(absCategories) {
   allBtn.classList.add("active");
 }
 
-// -------------------------
+
 // CATEGORÍAS (modal padre/hija) - getCategoriasTree + render
-// -------------------------
+
 async function getCategoriasTree() {
   // Intentamos endpoint dedicado; si no, construimos el árbol desde /categories/
   try {
@@ -384,21 +405,24 @@ function renderCategoriasModal(cats) {
   cont.innerHTML = "";
 
   cats.forEach(parent => {
-    // padre como option-box
+    // Padre
     const padreDiv = document.createElement("div");
-    padreDiv.className = "option-box";
+    padreDiv.className = "option-box option-parent";
     padreDiv.dataset.id = parent.id;
+    padreDiv.dataset.type = "parent";
     padreDiv.dataset.nombre = parent.nombre;
     padreDiv.textContent = parent.nombre;
     if (categoriasSeleccionadas.includes(parent.id)) padreDiv.classList.add("active");
     padreDiv.addEventListener("click", () => toggleCategoriaModal(parent.id, padreDiv));
     cont.appendChild(padreDiv);
 
-    // hijas
+    // Hijas
     (parent.hijas || []).forEach(h => {
       const hijaDiv = document.createElement("div");
-      hijaDiv.className = "option-box ms-3";
+      hijaDiv.className = "option-box option-child ms-3";
       hijaDiv.dataset.id = h.id;
+      hijaDiv.dataset.type = "child";
+      hijaDiv.dataset.parent = String(parent.id);
       hijaDiv.dataset.nombre = h.nombre;
       hijaDiv.textContent = h.nombre;
       if (categoriasSeleccionadas.includes(h.id)) hijaDiv.classList.add("active");
@@ -407,6 +431,56 @@ function renderCategoriasModal(cats) {
     });
   });
 }
+
+
+function filtrarCategoriasModal() {
+  const input = document.getElementById("buscarCategoria");
+  if (!input) return;
+
+  // Evitar que se acumulen listeners
+  input.removeEventListener("input", input._filtrarHandler);
+
+  // Nuevo listener como función aparte para poder removerlo después
+  input._filtrarHandler = () => {
+    const filtro = normalizeText(input.value.trim());
+    const padres = document.querySelectorAll("#listaCategorias .option-box[data-type='parent']");
+
+    padres.forEach(parentEl => {
+      const parentName = normalizeText(parentEl.dataset.nombre || "");
+      const children = document.querySelectorAll(
+        `#listaCategorias .option-box[data-type='child'][data-parent='${parentEl.dataset.id}']`
+      );
+
+      let parentMatches = filtro === "" ? true : parentName.includes(filtro);
+      let anyChildMatches = false;
+
+      children.forEach(childEl => {
+        const childName = normalizeText(childEl.dataset.nombre || "");
+        const childMatches = filtro === "" ? true : childName.includes(filtro);
+        anyChildMatches = anyChildMatches || childMatches;
+
+        // Mostrar/ocultar hijo
+        childEl.style.display = (filtro === "" || childMatches || parentMatches) ? "" : "none";
+      });
+
+      // Mostrar padre si coincide o si alguna hija coincide
+      parentEl.style.display = (filtro === "" || parentMatches || anyChildMatches) ? "" : "none";
+
+      // Si el padre coincide con el filtro, mostrar todas sus hijas
+      if (filtro !== "" && parentMatches) {
+        children.forEach(ch => ch.style.display = "");
+      }
+    });
+  };
+
+  // Asignar nuevo listener
+  input.addEventListener("input", input._filtrarHandler);
+
+  // Forzar un filtrado inicial
+  input.dispatchEvent(new Event("input"));
+}
+
+
 
 function toggleCategoriaModal(id, element) {
   id = Number(id);
@@ -428,6 +502,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modalCategorias.addEventListener("shown.bs.modal", async () => {
       const cats = await getCategoriasTree();
       renderCategoriasModal(cats);
+      filtrarCategoriasModal(); // activa búsqueda en tiempo real
     });
   }
 
@@ -454,11 +529,157 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// -------------------------
+
 // Inicialización
-// -------------------------
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Carga inicial
   fetchCarousel();
-  fetchAbsoluteCategories(); // llena #categoriasContainer con absolutas (barra principal)
+  fetchAbsoluteCategories();
   cargarProductos();
+
+  // Listener para el select de orden
+  const ordenSelect = document.getElementById("ordenSelect");
+  if (ordenSelect) {
+    ordenSelect.addEventListener("change", () => {
+      switch (ordenSelect.value) {
+        case "precio-asc":
+          criterioOrden = "price";
+          break;
+        case "precio-desc":
+          criterioOrden = "-price";
+          break;
+        case "nombre":
+          criterioOrden = "name";
+          break;
+        case "disponibilidad":
+          criterioOrden = "-total_stock";
+          break;
+        default:
+          criterioOrden = "";
+      }
+      cargarProductos();
+    });
+  }
+
+  // FORMULARIO DE BÚSQUEDA (submit)
+  const formBusqueda = document.getElementById("formBusquedaProductos");
+  if (formBusqueda) {
+    formBusqueda.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = document.getElementById("inputBusqueda");
+      terminoBusqueda = input ? input.value : "";
+      cargarProductos();
+    });
+  }
+
+  // AUTOCOMPLETADO
+  const inputBusqueda = document.getElementById("inputBusqueda");
+  if (inputBusqueda) {
+    const sugerenciasDiv = document.createElement("div");
+    sugerenciasDiv.className = "list-group position-absolute w-100";
+    sugerenciasDiv.style.zIndex = "1000";
+    sugerenciasDiv.style.maxHeight = "250px";
+    sugerenciasDiv.style.overflowY = "auto";
+    inputBusqueda.parentNode.appendChild(sugerenciasDiv);
+
+    let timeout = null;
+    let selectedIndex = -1; // para manejar teclas ↑ ↓
+
+    inputBusqueda.addEventListener("input", () => {
+      clearTimeout(timeout);
+      const query = inputBusqueda.value.trim();
+      selectedIndex = -1;
+      if (!query) {
+        sugerenciasDiv.innerHTML = "";
+        return;
+      }
+
+      timeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/products/autocomplete/?q=${encodeURIComponent(query)}`);
+          if (!res.ok) throw new Error("Error en autocompletado");
+          const data = await res.json();
+          renderSugerencias(data);
+        } catch (err) {
+          console.error("❌ Autocomplete:", err);
+        }
+      }, 300);
+    });
+
+    // Navegación con teclas ↑ ↓ y Enter
+    inputBusqueda.addEventListener("keydown", (e) => {
+      const items = sugerenciasDiv.querySelectorAll(".list-group-item");
+      if (!items.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        selectedIndex = (selectedIndex + 1) % items.length;
+        updateHighlight(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+        updateHighlight(items);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < items.length) {
+          items[selectedIndex].click();
+        } else {
+          formBusqueda?.requestSubmit();
+        }
+      }
+    });
+
+    function updateHighlight(items) {
+      items.forEach((item, idx) => {
+        item.classList.toggle("active", idx === selectedIndex);
+      });
+    }
+
+    function renderSugerencias(data) {
+      sugerenciasDiv.innerHTML = "";
+
+      const { productos = [], categorias = [] } = data;
+
+      if (!productos.length && !categorias.length) {
+        sugerenciasDiv.innerHTML = `<div class="list-group-item text-muted">Sin resultados</div>`;
+        return;
+      }
+
+      // Productos sugeridos
+      if (productos.length) {
+        productos.forEach(p => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "list-group-item list-group-item-action";
+          item.textContent = `🛍 ${p}`;
+          item.addEventListener("click", () => {
+            inputBusqueda.value = p; // autocompletar input
+            sugerenciasDiv.innerHTML = "";
+            terminoBusqueda = p;
+            cargarProductos();
+          });
+          sugerenciasDiv.appendChild(item);
+        });
+      }
+
+      // Categorías sugeridas
+      if (categorias.length) {
+        categorias.forEach(c => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "list-group-item list-group-item-action";
+          item.textContent = `📂 ${c}`;
+          item.addEventListener("click", () => {
+            inputBusqueda.value = c; // autocompletar input
+            sugerenciasDiv.innerHTML = "";
+            terminoBusqueda = "";
+            categoriasSeleccionadas = [c];
+            cargarProductos();
+          });
+          sugerenciasDiv.appendChild(item);
+        });
+      }
+    }
+  }
 });
