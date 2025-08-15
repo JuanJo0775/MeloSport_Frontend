@@ -153,7 +153,6 @@ async function cargarProductos() {
   }
 }
 
-
 function renderProducts(products) {
   const container = document.getElementById("productosContainer");
   if (!container) return;
@@ -162,23 +161,25 @@ function renderProducts(products) {
   products.forEach(product => {
     // crear columna
     const col = document.createElement("div");
-    col.className = "col-12 col-sm-6 col-lg-3";
+    col.className = "col-12 col-sm-6 col-lg-3 d-flex";
 
     const imageUrl = getImageUrlFromProduct(product);
-    const categoryName = (product.categories?.length) ? product.categories[0].name : (product.category?.name || "Sin categoría");
+    const categoryName = (product.categories?.length)
+      ? product.categories[0].name
+      : (product.category?.name || "Sin categoría");
     const absoluteCategoryName = product.absolute_category?.nombre || product.absolute_category?.name || null;
+
     function formatCOP(value) {
-      const numberValue = Number(value) || 0; // fuerza número
+      const numberValue = Number(value) || 0;
       return `$${numberValue.toLocaleString("es-CO", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
       })} COP`;
     }
 
-    // Uso:
     const price = formatCOP(product.price);
 
-    const sizes = [...new Set(product.variants?.map(v => v.size).filter(Boolean))];
+    const sizes  = [...new Set(product.variants?.map(v => v.size ).filter(Boolean))];
     const colors = [...new Set(product.variants?.map(v => v.color).filter(Boolean))];
 
     const variantsStock = Array.isArray(product.variants) && product.variants.length
@@ -188,55 +189,100 @@ function renderProducts(products) {
     const totalStock = variantsStock > 0 ? variantsStock : baseStock;
 
     col.innerHTML = `
-      <div class="card producto-card h-100 shadow-bottom">
+      <div class="card producto-card shadow-bottom w-100 d-flex flex-column h-100 cursor-pointer">
         <div class="image-container">
           <img src="${imageUrl}" class="card-img-top" alt="${safeText(product.name)}"
                onerror="this.onerror=null;this.src='https://via.placeholder.com/300x300?text=Sin+Imagen'">
           ${absoluteCategoryName ? `<span class="badge badge-absolute badge-over-image">${absoluteCategoryName}</span>` : ""}
         </div>
-        <div class="card-body">
-          <h5 class="card-title">${safeText(product.name)}</h5>
-          <p class="card-text text-muted">${safeText(categoryName)}</p>
 
-          ${ sizes.length > 1 ? `<div class="sizes-container">${sizes.map(s => `<span class="size-box" data-size="${s}">${s}</span>`).join("")}</div>` : sizes.length === 1 ? `<p><strong>Talla:</strong> ${sizes[0]}</p>` : "" }
+        <div class="card-body d-flex flex-column">
+          <div class="product-info flex-grow-1">
+            <h5 class="card-title mb-1" style="min-height:48px;">${safeText(product.name)}</h5>
+            <p class="card-text text-muted" style="min-height:24px;">${safeText(categoryName)}</p>
 
-          ${ colors.length > 1 ? `<div class="variants-container">${colors.map(c => `<span class="variant-box" data-color="${c}">${c}</span>`).join("")}</div>` : colors.length === 1 ? `<p><strong>Color:</strong> ${colors[0]}</p>` : "" }
+            <!-- Tallas -->
+            <div class="slot slot-sizes" style="min-height:45px;">
+              ${
+                sizes.length > 1
+                  ? `<div class="sizes-container">${sizes.map(s => `<span class="size-box" data-size="${s}">${s}</span>`).join("")}</div>`
+                  : sizes.length === 1
+                    ? `<p class="m-0"><strong>Talla:</strong> ${sizes[0]}</p>`
+                    : `<div class="sizes-placeholder" aria-hidden="true"></div>`
+              }
+            </div>
 
-          <p class="fw-bold text-success mt-2 fs-4">${price}</p>
-          <p class="stock-text"><strong>Stock:</strong> ${totalStock} unidades</p>
-          <a href="/productos/${product.id}" class="btn btn-primary w-100">Ver Detalle</a>
+            <!-- Colores -->
+            <div class="slot slot-colors" style="min-height:45px;">
+              ${
+                colors.length > 1
+                  ? `<div class="variants-container">${colors.map(c => `<span class="variant-box" data-color="${c}">${c}</span>`).join("")}</div>`
+                  : colors.length === 1
+                    ? `<p class="m-0"><strong>Color:</strong> ${colors[0]}</p>`
+                    : `<div class="colors-placeholder" aria-hidden="true"></div>`
+              }
+            </div>
+
+            <!-- Precio -->
+            <div class="slot slot-price" style="min-height:50px;">
+              <p class="fw-bold text-success fs-4 mb-0">${price}</p>
+            </div>
+
+            <!-- Stock -->
+            <div class="slot slot-stock" style="min-height:35px;">
+              <p class="stock-text mb-0"><strong>Stock:</strong> ${totalStock} unidades</p>
+            </div>
+          </div>
+
+          <a href="/productos/${product.id}" class="btn btn-primary w-100 mt-3">Ver Detalle</a>
         </div>
       </div>
     `;
 
     container.appendChild(col);
 
-    // --- listeners para variantes dentro de esta tarjeta ---
-    // (se definen por tarjeta, cierran sobre product/totalStock)
+    // --- listeners dentro de la tarjeta ---
     const cardEl = col.querySelector(".card");
     if (!cardEl) return;
+
+    // 🔹 Hacer toda la tarjeta clickeable
+    cardEl.addEventListener("click", (e) => {
+      // ignorar clicks en botones de talla, color o el propio botón "Ver Detalle"
+      if (e.target.closest(".size-box") || e.target.closest(".variant-box") || e.target.closest("a.btn")) {
+        return;
+      }
+      window.location.href = `/productos/${product.id}`;
+    });
+
+    // --- listeners de variantes ---
     let selectedSize = null;
     let selectedColor = null;
 
-    const sizeBtns = cardEl.querySelectorAll(".size-box");
+    const sizeBtns  = cardEl.querySelectorAll(".size-box");
     const colorBtns = cardEl.querySelectorAll(".variant-box");
 
     function updateStock() {
       let filtered = Array.isArray(product.variants) ? [...product.variants] : [];
-      if (selectedSize) filtered = filtered.filter(v => v.size === selectedSize);
+      if (selectedSize)  filtered = filtered.filter(v => v.size  === selectedSize);
       if (selectedColor) filtered = filtered.filter(v => v.color === selectedColor);
-      const stockFiltered = filtered.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+
+      const stockFiltered = filtered.length
+        ? filtered.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+        : totalStock;
+
       const stockNode = cardEl.querySelector(".stock-text");
       if (stockNode) stockNode.innerHTML = `<strong>Stock:</strong> ${stockFiltered} unidades (total: ${totalStock})`;
     }
 
     sizeBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (selectedSize === btn.dataset.size) {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation(); // evitar que abra el detalle
+        const value = btn.dataset.size;
+        if (selectedSize === value) {
           selectedSize = null;
           btn.classList.remove("active");
         } else {
-          selectedSize = btn.dataset.size;
+          selectedSize = value;
           sizeBtns.forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
         }
@@ -245,12 +291,14 @@ function renderProducts(products) {
     });
 
     colorBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (selectedColor === btn.dataset.color) {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation(); // evitar que abra el detalle
+        const value = btn.dataset.color;
+        if (selectedColor === value) {
           selectedColor = null;
           btn.classList.remove("active");
         } else {
-          selectedColor = btn.dataset.color;
+          selectedColor = value;
           colorBtns.forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
         }
