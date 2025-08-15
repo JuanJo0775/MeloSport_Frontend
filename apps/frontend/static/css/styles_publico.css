@@ -326,3 +326,32 @@ footer {
 .stock-text strong {
     font-weight: 600;
 }
+
+#listaCategorias {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.option-box {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  word-wrap: break-word;
+}
+
+.option-box:hover {
+  background-color: #e6f0ff;
+  border-color: #0d6efd;
+}
+
+.option-box.active {
+  background-color: #0d6efd;
+  color: #fff;
+  border-color: #0d6efd;
+}
+

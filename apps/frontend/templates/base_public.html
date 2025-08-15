@@ -22,9 +22,10 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top" role="navigation" aria-label="Navegación principal">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="#" aria-label="Ir al inicio">
+            <a class="navbar-brand fw-bold" href="{% url 'index' %}" aria-label="Ir al inicio">
                 <i class="fas fa-running me-2 text-primary"></i>Melosport
             </a>
+
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegación">
@@ -39,18 +40,10 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#productos">Productos</a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="categoriasDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            Categorías
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" role="button" data-bs-toggle="modal" data-bs-target="#modalCategorias">
+                          Categorías
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="categoriasDropdown">
-                            <li><a class="dropdown-item" href="#">Fútbol</a></li>
-                            <li><a class="dropdown-item" href="#">Baloncesto</a></li>
-                            <li><a class="dropdown-item" href="#">Voleibol</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#">Ver todas</a></li>
-                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#contacto">Contacto</a>
@@ -179,6 +172,7 @@
     <!-- Servicios de autenticación y API -->
   <!--  <script src="{% static 'js/authService.js' %}"></script> -->
     <script src="{% static 'js/apiService.js' %}"></script>
+    <script src="{% static 'js/publicHome.js' %}"></script>
 
 
     <script>
@@ -210,6 +204,25 @@
             }
         });
     </script>
+
+        <div class="modal fade" id="modalCategorias" tabindex="-1" aria-labelledby="modalCategoriasLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalCategoriasLabel">Seleccionar categorías</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <input type="text" id="searchCategorias" class="form-control mb-3" placeholder="Buscar categoría...">
+                <div id="listaCategorias" style="max-height:400px; overflow-y:auto;"></div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" id="limpiarCategorias">Limpiar</button>
+                <button class="btn btn-primary" id="aplicarCategorias" data-bs-dismiss="modal">Aplicar</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
 
 </body>

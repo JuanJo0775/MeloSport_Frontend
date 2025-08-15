@@ -1,10 +1,14 @@
-// ===============================
-// API Service - MeloSport Public
-// ===============================
+// apiService.js - MeloSport Public (unificado y compatible con publicHome)
+/* eslint-disable no-unused-vars */
+const API_BASE_URL = "http://127.0.0.1:8000/api";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api"; // Ajusta al dominio real
+// Estado global de filtros
+let categoriasSeleccionadas = [];   // IDs seleccionados desde el modal (padre/hija)
+let absolutasSeleccionadas = [];    // IDs seleccionados desde la barra de absolutas
 
-// --- Utilidad de error accesible ---
+// -------------------------
+// Utilidades
+// -------------------------
 function showErrorPlaceholder(container, message) {
   if (!container) return;
   container.innerHTML = `
@@ -14,16 +18,18 @@ function showErrorPlaceholder(container, message) {
   `;
 }
 
-// --- Obtener carrusel (solo activos) ---
+function safeText(x) { return (x === null || typeof x === "undefined") ? "" : x; }
+
+// -------------------------
+// CARRUSEL
+// -------------------------
 async function fetchCarousel() {
   const carousel = document.getElementById("promocionesCarousel");
   try {
     const res = await fetch(`${API_BASE_URL}/carousel/?is_active=true`);
     if (!res.ok) throw new Error("Error al obtener el carrusel");
     const data = await res.json();
-    const items = data.results || data; // <-- soporte results o array
-
-    // Mezclar con banners informativos locales
+    const items = data.results || data || [];
     const infoSlides = getInfoSlides();
     renderCarousel([...infoSlides, ...items]);
   } catch (err) {
@@ -48,36 +54,17 @@ async function fetchCarousel() {
   }
 }
 
-// --- Slides informativos por defecto ---
 function getInfoSlides() {
   return [
-    {
-      type: "info",
-      custom_title: "Promociones de temporada",
-      custom_subtitle: "Ahorra en colecciones seleccionadas",
-      cta_label: "Ver productos",
-      cta_href: "#productos",
-      bg: "bg-primary",
-      text: "text-white"
-    },
-    {
-      type: "info",
-      custom_title: "Aviso institucional",
-      custom_subtitle: "Atención personalizada a clubes y colegios",
-      cta_label: "Contáctanos",
-      cta_href: "#contacto",
-      bg: "bg-dark",
-      text: "text-light"
-    }
+    { type: "info", custom_title: "Promociones de temporada", custom_subtitle: "Ahorra en colecciones seleccionadas", cta_label:"Ver productos", cta_href:"#productos", bg:"bg-primary", text:"text-white" },
+    { type: "info", custom_title: "Aviso institucional", custom_subtitle: "Atención personalizada a clubes y colegios", cta_label:"Contáctanos", cta_href:"#contacto", bg:"bg-dark", text:"text-light" }
   ];
 }
 
-// --- Renderizar carrusel ---
 function renderCarousel(items) {
   const indicators = document.querySelector("#promocionesCarousel .carousel-indicators");
   const inner = document.querySelector("#promocionesCarousel .carousel-inner");
   if (!indicators || !inner) return;
-
   indicators.innerHTML = "";
   inner.innerHTML = "";
 
@@ -93,9 +80,7 @@ function renderCarousel(items) {
     const isInfo = item.type === "info";
     const title = item.custom_title || item.product_name || "Destacado";
     const subtitle = item.custom_subtitle || "";
-    const href = isInfo
-      ? (item.cta_href || "#")
-      : `/productos/${item.product_id}`;
+    const href = isInfo ? (item.cta_href || "#") : `/productos/${item.product_id}`;
     const cta = isInfo ? (item.cta_label || "Ver más") : "Ver producto";
     const bg = item.bg || "bg-primary";
     const text = item.text || "text-white";
@@ -122,254 +107,358 @@ function renderCarousel(items) {
   });
 }
 
+// -------------------------
+// PRODUCTOS (carga y render)
+// -------------------------
+async function cargarProductos() {
+  let url = `${API_BASE_URL}/products/?page=1`;
 
+  if (categoriasSeleccionadas && categoriasSeleccionadas.length) {
+    url += `&categories=${categoriasSeleccionadas.join(",")}`;
+  }
+  if (absolutasSeleccionadas && absolutasSeleccionadas.length) {
+    url += `&absolute_categories=${absolutasSeleccionadas.join(",")}`;
+  }
 
-// --- Renderizar productos ---
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Error al obtener productos: ${res.status}`);
+    const data = await res.json();
+    const items = data.results || data || [];
+    renderProducts(items);
+  } catch (err) {
+    console.error("❌ Productos:", err);
+    const container = document.getElementById("productosContainer");
+    showErrorPlaceholder(container, "No pudimos cargar los productos ahora.");
+  }
+}
+
 function renderProducts(products) {
   const container = document.getElementById("productosContainer");
   if (!container) return;
   container.innerHTML = "";
 
   products.forEach(product => {
+    // crear columna
     const col = document.createElement("div");
     col.className = "col-12 col-sm-6 col-lg-3";
 
     const imageUrl = getImageUrlFromProduct(product);
-    const categoryName = (product.categories?.length)
-      ? product.categories[0].name
-      : (product.category?.name || "Sin categoría");
-    const absoluteCategoryName = product.absolute_category?.nombre || null;
+    const categoryName = (product.categories?.length) ? product.categories[0].name : (product.category?.name || "Sin categoría");
+    const absoluteCategoryName = product.absolute_category?.nombre || product.absolute_category?.name || null;
+    function formatCOP(value) {
+      const numberValue = Number(value) || 0; // fuerza número
+      return `$${numberValue.toLocaleString("es-CO", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      })} COP`;
+    }
 
-    const price = (product.price ?? 0).toLocaleString("es-CO");
+    // Uso:
+    const price = formatCOP(product.price);
 
-    // Obtener variantes
     const sizes = [...new Set(product.variants?.map(v => v.size).filter(Boolean))];
     const colors = [...new Set(product.variants?.map(v => v.color).filter(Boolean))];
 
-    // Stock total
-    const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
+    const variantsStock = Array.isArray(product.variants) && product.variants.length
+      ? product.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+      : 0;
+    const baseStock = Number(product.stock ?? product.total_stock ?? 0);
+    const totalStock = variantsStock > 0 ? variantsStock : baseStock;
 
-    // HTML tarjeta
     col.innerHTML = `
       <div class="card producto-card h-100 shadow-bottom">
         <div class="image-container">
-          <img src="${imageUrl}" class="card-img-top" alt="${product.name}"
+          <img src="${imageUrl}" class="card-img-top" alt="${safeText(product.name)}"
                onerror="this.onerror=null;this.src='https://via.placeholder.com/300x300?text=Sin+Imagen'">
-          ${ absoluteCategoryName ? `<span class="badge badge-absolute badge-over-image">${absoluteCategoryName}</span>` : "" }
+          ${absoluteCategoryName ? `<span class="badge badge-absolute badge-over-image">${absoluteCategoryName}</span>` : ""}
         </div>
         <div class="card-body">
-          <h5 class="card-title">${product.name}</h5>
-          <p class="card-text text-muted">${categoryName}</p>
+          <h5 class="card-title">${safeText(product.name)}</h5>
+          <p class="card-text text-muted">${safeText(categoryName)}</p>
 
-          ${ sizes.length > 1 ? `
-            <div class="sizes-container">
-              ${sizes.map(size => `<span class="size-box" data-size="${size}">${size}</span>`).join("")}
-            </div>` 
-            : sizes.length === 1 ? `<p><strong>Talla:</strong> ${sizes[0]}</p>` : ""
-          }
+          ${ sizes.length > 1 ? `<div class="sizes-container">${sizes.map(s => `<span class="size-box" data-size="${s}">${s}</span>`).join("")}</div>` : sizes.length === 1 ? `<p><strong>Talla:</strong> ${sizes[0]}</p>` : "" }
 
-          ${ colors.length > 1 ? `
-            <div class="variants-container">
-              ${colors.map(color => `<span class="variant-box" data-color="${color}">${color}</span>`).join("")}
-            </div>` 
-            : colors.length === 1 ? `<p><strong>Color:</strong> ${colors[0]}</p>` : ""
-          }
+          ${ colors.length > 1 ? `<div class="variants-container">${colors.map(c => `<span class="variant-box" data-color="${c}">${c}</span>`).join("")}</div>` : colors.length === 1 ? `<p><strong>Color:</strong> ${colors[0]}</p>` : "" }
 
-          <p class="fw-bold text-success mt-2">$${price}</p>
+          <p class="fw-bold text-success mt-2 fs-4">${price}</p>
           <p class="stock-text"><strong>Stock:</strong> ${totalStock} unidades</p>
           <a href="/productos/${product.id}" class="btn btn-primary w-100">Ver Detalle</a>
         </div>
       </div>
     `;
 
-    // Eventos para selección/deselección y stock filtrado
+    container.appendChild(col);
+
+    // --- listeners para variantes dentro de esta tarjeta ---
+    // (se definen por tarjeta, cierran sobre product/totalStock)
     const cardEl = col.querySelector(".card");
+    if (!cardEl) return;
     let selectedSize = null;
     let selectedColor = null;
 
-    cardEl.querySelectorAll(".size-box").forEach(btn => {
+    const sizeBtns = cardEl.querySelectorAll(".size-box");
+    const colorBtns = cardEl.querySelectorAll(".variant-box");
+
+    function updateStock() {
+      let filtered = Array.isArray(product.variants) ? [...product.variants] : [];
+      if (selectedSize) filtered = filtered.filter(v => v.size === selectedSize);
+      if (selectedColor) filtered = filtered.filter(v => v.color === selectedColor);
+      const stockFiltered = filtered.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+      const stockNode = cardEl.querySelector(".stock-text");
+      if (stockNode) stockNode.innerHTML = `<strong>Stock:</strong> ${stockFiltered} unidades (total: ${totalStock})`;
+    }
+
+    sizeBtns.forEach(btn => {
       btn.addEventListener("click", () => {
         if (selectedSize === btn.dataset.size) {
-          selectedSize = null; // deseleccionar
+          selectedSize = null;
           btn.classList.remove("active");
         } else {
           selectedSize = btn.dataset.size;
-          cardEl.querySelectorAll(".size-box").forEach(b => b.classList.remove("active"));
+          sizeBtns.forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
         }
         updateStock();
       });
     });
 
-    cardEl.querySelectorAll(".variant-box").forEach(btn => {
+    colorBtns.forEach(btn => {
       btn.addEventListener("click", () => {
         if (selectedColor === btn.dataset.color) {
-          selectedColor = null; // deseleccionar
+          selectedColor = null;
           btn.classList.remove("active");
         } else {
           selectedColor = btn.dataset.color;
-          cardEl.querySelectorAll(".variant-box").forEach(b => b.classList.remove("active"));
+          colorBtns.forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
         }
         updateStock();
       });
     });
-
-    function updateStock() {
-      let filtered = product.variants;
-      if (selectedSize) filtered = filtered.filter(v => v.size === selectedSize);
-      if (selectedColor) filtered = filtered.filter(v => v.color === selectedColor);
-      const stockFiltered = filtered.reduce((sum, v) => sum + (v.stock || 0), 0);
-      cardEl.querySelector(".stock-text").innerHTML =
-        `<strong>Stock:</strong> ${stockFiltered} unidades (total: ${totalStock})`;
-
-    }
-
-    container.appendChild(col);
   });
 }
 
-
-
+// -------------------------
+// Helpers imagen
+// -------------------------
 function getImageUrlFromProduct(product) {
+  if (!product) return "https://via.placeholder.com/300x300?text=Sin+Imagen";
   if (product.main_image) return product.main_image;
-
   if (product.images && product.images.length) {
     const main = product.images.find(i => i.is_main) || product.images[0];
     if (main.image_url) return main.image_url;
-    if (main.image) {
-      const backendBase = API_BASE_URL.replace("/api", "");
-      if (main.image.startsWith("http")) return main.image;
-      if (main.image.startsWith("/")) return backendBase + main.image;
-      return backendBase + "/" + main.image;
-    }
-  }
-
-  if (product.image) {
-    if (product.image.startsWith("http")) return product.image;
     const backendBase = API_BASE_URL.replace("/api", "");
-    return product.image.startsWith("/") ? backendBase + product.image : backendBase + "/" + product.image;
+    return main.image?.startsWith("http") ? main.image : backendBase + (main.image?.startsWith("/") ? main.image : `/${main.image}`);
   }
-
+  if (product.image) {
+    const backendBase = API_BASE_URL.replace("/api", "");
+    return product.image.startsWith("http") ? product.image : backendBase + (product.image.startsWith("/") ? product.image : `/${product.image}`);
+  }
   return "https://via.placeholder.com/300x300?text=Sin+Imagen";
 }
 
-
-// --- Categorías ---
-async function fetchCategories() {
+// -------------------------
+// CATEGORÍAS ABSOLUTAS (barra principal)
+// -------------------------
+async function fetchAbsoluteCategories() {
   const container = document.getElementById("categoriasContainer");
+  if (!container) return;
   try {
-    const res = await fetch(`${API_BASE_URL}/categories/`);
-    if (!res.ok) throw new Error("Error al obtener categorías");
+    const res = await fetch(`${API_BASE_URL}/absolute-categories/`);
+    if (!res.ok) throw new Error("Error al obtener categorías absolutas");
     const data = await res.json();
-    const categories = data.results || data; // <-- soporte results o array
-    renderCategories(categories);
+
+    // Asegurar que sea lista plana
+    const list = (data.results || data || []).map(c => ({
+      id: c.id,
+      nombre: c.nombre || c.name || "Categoría",
+      icon: c.icon || ""
+    }));
+
+    renderAbsoluteCategoriesBar(list);
   } catch (err) {
-    console.error("❌ Categorías:", err);
-    showErrorPlaceholder(container, "Sin categorías disponibles por ahora.");
+    console.error("❌ Categorías absolutas:", err);
+    showErrorPlaceholder(container, "Sin categorías absolutas disponibles.");
   }
 }
 
-function renderCategories(categories) {
+
+function renderAbsoluteCategoriesBar(absCategories) {
   const container = document.getElementById("categoriasContainer");
   if (!container) return;
   container.innerHTML = "";
 
+  // Botón "Todos"
   const allBtn = document.createElement("button");
-  allBtn.className = "btn btn-primary";
+  allBtn.className = "btn btn-primary me-2 mb-2";
   allBtn.innerText = "Todos";
-  allBtn.addEventListener("click", () => filterByCategory(null));
+  allBtn.addEventListener("click", () => {
+    absolutasSeleccionadas = [];
+    container.querySelectorAll(".btn-absolute").forEach(btn => {
+      btn.classList.remove("active", "btn-primary");
+      btn.classList.add("btn-outline-primary");
+    });
+    allBtn.classList.add("active");
+    cargarProductos();
+  });
   container.appendChild(allBtn);
 
-  const parentCats = categories.filter(cat => !cat.parent);
-  parentCats.forEach(category => {
+  // Botones de absolutas (multi-selección estilo botón)
+  absCategories.forEach(cat => {
     const btn = document.createElement("button");
-    btn.className = "btn btn-outline-primary";
-    btn.innerText = category.name;
-    btn.addEventListener("click", () => filterByCategory(category.id));
+    btn.className = "btn btn-outline-primary me-2 mb-2 btn-absolute";
+    btn.innerHTML = `${cat.icon ? `${cat.icon} ` : ""}${cat.nombre}`;
+
+    btn.addEventListener("click", () => {
+      const idx = absolutasSeleccionadas.indexOf(cat.id);
+      if (idx >= 0) {
+        absolutasSeleccionadas.splice(idx, 1);
+        btn.classList.remove("active", "btn-primary");
+        btn.classList.add("btn-outline-primary");
+      } else {
+        absolutasSeleccionadas.push(cat.id);
+        btn.classList.add("active", "btn-primary");
+        btn.classList.remove("btn-outline-primary");
+      }
+      if (absolutasSeleccionadas.length > 0) allBtn.classList.remove("active");
+      else allBtn.classList.add("active");
+      cargarProductos();
+    });
+
     container.appendChild(btn);
   });
+
+  // Botón "Más filtros…" -> abre modal existente #modalCategorias
+  const verTodasBtn = document.createElement("button");
+  verTodasBtn.className = "btn btn-secondary mb-2";
+  verTodasBtn.innerText = "Más filtros…";
+  verTodasBtn.setAttribute("data-bs-toggle", "modal");
+  verTodasBtn.setAttribute("data-bs-target", "#modalCategorias");
+  container.appendChild(verTodasBtn);
+
+  allBtn.classList.add("active");
 }
 
-
-async function filterByCategory(categoryId) {
-  const container = document.getElementById("productosContainer");
+// -------------------------
+// CATEGORÍAS (modal padre/hija) - getCategoriasTree + render
+// -------------------------
+async function getCategoriasTree() {
+  // Intentamos endpoint dedicado; si no, construimos el árbol desde /categories/
   try {
-    const url = categoryId
-      ? `${API_BASE_URL}/products/?category=${categoryId}&limit=12`
-      : `${API_BASE_URL}/products/?limit=12`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Error al filtrar productos");
+    let res = await fetch(`${API_BASE_URL}/categories-tree/`);
+    if (res.ok) {
+      const data = await res.json();
+      return data || [];
+    }
+
+    // Fallback: obtener todas y construir árbol
+    res = await fetch(`${API_BASE_URL}/categories/`);
+    if (!res.ok) throw new Error("No se pudo obtener categorías para construir árbol");
     const data = await res.json();
-    const items = data.results || data; // <-- soporte results o array
-    renderProducts(items);
+    const list = data.results || data || [];
+
+    // construir árbol: padres (parent==null), hijas agrupadas
+    const byId = {};
+    list.forEach(c => byId[c.id] = { id: c.id, nombre: c.nombre || c.name, parent: c.parent || null });
+    const padres = [];
+    Object.values(byId).forEach(c => {
+      if (!c.parent) padres.push({ id: c.id, nombre: c.nombre, hijas: [] });
+    });
+    Object.values(byId).forEach(c => {
+      if (c.parent) {
+        const p = padres.find(xx => xx.id === c.parent);
+        if (p) p.hijas.push({ id: c.id, nombre: c.nombre });
+      }
+    });
+    return padres;
   } catch (err) {
-    console.error("❌ Filtro:", err);
-    showErrorPlaceholder(container, "No pudimos filtrar los productos.");
+    console.error("❌ getCategoriasTree:", err);
+    return [];
   }
 }
 
-function renderCategoryFilters(categories) {
-  const container = document.getElementById("categoriasContainer");
-  container.innerHTML = "";
+function renderCategoriasModal(cats) {
+  const cont = document.getElementById("listaCategorias");
+  if (!cont) return;
+  cont.innerHTML = "";
 
-  categories.filter(cat => !cat.parent).forEach(cat => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "form-check";
-    wrapper.innerHTML = `
-      <input class="form-check-input cat-checkbox" type="checkbox" value="${cat.id}" id="cat-${cat.id}">
-      <label class="form-check-label" for="cat-${cat.id}">${cat.name}</label>
-    `;
-    container.appendChild(wrapper);
-  });
+  cats.forEach(parent => {
+    // padre como option-box
+    const padreDiv = document.createElement("div");
+    padreDiv.className = "option-box";
+    padreDiv.dataset.id = parent.id;
+    padreDiv.dataset.nombre = parent.nombre;
+    padreDiv.textContent = parent.nombre;
+    if (categoriasSeleccionadas.includes(parent.id)) padreDiv.classList.add("active");
+    padreDiv.addEventListener("click", () => toggleCategoriaModal(parent.id, padreDiv));
+    cont.appendChild(padreDiv);
 
-  container.addEventListener('change', () => {
-    const selected = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(i => i.value);
-    fetchProducts({ limit: 12, categories: selected });
+    // hijas
+    (parent.hijas || []).forEach(h => {
+      const hijaDiv = document.createElement("div");
+      hijaDiv.className = "option-box ms-3";
+      hijaDiv.dataset.id = h.id;
+      hijaDiv.dataset.nombre = h.nombre;
+      hijaDiv.textContent = h.nombre;
+      if (categoriasSeleccionadas.includes(h.id)) hijaDiv.classList.add("active");
+      hijaDiv.addEventListener("click", () => toggleCategoriaModal(h.id, hijaDiv));
+      cont.appendChild(hijaDiv);
+    });
   });
 }
 
-async function fetchProducts({ limit = 12, ordering = null, categories = [] } = {}) {
-  const container = document.getElementById("productosContainer");
-  try {
-    const params = new URLSearchParams();
-    params.set('limit', limit);
-    if (ordering) params.set('ordering', ordering);
-    if (categories && categories.length) params.set('categories', categories.join(','));
-    const res = await fetch(`${API_BASE_URL}/products/?${params.toString()}`);
-    if (!res.ok) throw new Error("Error al obtener productos");
-    const data = await res.json();
-    const items = (data.results || data).map(p => ({
-        ...p,
-        absolute_category: p.absolute_category || null
-    }));
-    renderProducts(items);
-  } catch (err) {
-    console.error("❌ Productos:", err);
-    showErrorPlaceholder(container, "No pudimos cargar los productos ahora mismo.");
+function toggleCategoriaModal(id, element) {
+  id = Number(id);
+  const idx = categoriasSeleccionadas.indexOf(id);
+  if (idx >= 0) {
+    categoriasSeleccionadas.splice(idx, 1);
+    element.classList.remove("active");
+  } else {
+    categoriasSeleccionadas.push(id);
+    element.classList.add("active");
   }
 }
 
-// --- Inicializar ---
+// Aplicar / Limpiar del modal (se asume ids: aplicarCategorias, limpiarCategorias)
 document.addEventListener("DOMContentLoaded", () => {
-  fetchCarousel();
-  fetchProducts(12);
-  fetchCategories();
+  // cargar árbol cuando se abra el modal
+  const modalCategorias = document.getElementById("modalCategorias");
+  if (modalCategorias) {
+    modalCategorias.addEventListener("shown.bs.modal", async () => {
+      const cats = await getCategoriasTree();
+      renderCategoriasModal(cats);
+    });
+  }
 
-  // Listener para ordenSelect
-  const ordenSelect = document.getElementById('ordenSelect');
-  if (ordenSelect) {
-    ordenSelect.addEventListener('change', (e) => {
-      const val = e.target.value;
-      const map = {
-        'precio-asc': 'price',
-        'precio-desc': '-price',
-        'nombre': 'name',
-        'disponibilidad': '-_stock'
-      };
-      const ordering = map[val] || null;
-      fetchProducts({ limit: 12, ordering }); // <-- necesita versión de fetchProducts con params
+  const aplicarBtn = document.getElementById("aplicarCategorias");
+  if (aplicarBtn) {
+    aplicarBtn.addEventListener("click", () => {
+      // cerrar modal usando bootstrap if available
+      const modalEl = document.getElementById("modalCategorias");
+      if (typeof bootstrap !== "undefined" && modalEl) {
+        const bs = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        bs.hide();
+      }
+      cargarProductos();
+    });
+  }
+
+  const limpiarBtn = document.getElementById("limpiarCategorias");
+  if (limpiarBtn) {
+    limpiarBtn.addEventListener("click", () => {
+      categoriasSeleccionadas = [];
+      document.querySelectorAll("#listaCategorias .option-box.active").forEach(el => el.classList.remove("active"));
+      cargarProductos();
     });
   }
 });
 
+// -------------------------
+// Inicialización
+// -------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  fetchCarousel();
+  fetchAbsoluteCategories(); // llena #categoriasContainer con absolutas (barra principal)
+  cargarProductos();
+});
