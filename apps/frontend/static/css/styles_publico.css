@@ -410,6 +410,9 @@ footer {
   color: #fff;
 }
 
+#product-detail img.img-thumbnail:hover {
+    border: 2px solid #007bff;
+}
 
 #listaCategorias { scroll-behavior: smooth; }
 .option-parent { font-weight: 600; }

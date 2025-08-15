@@ -92,7 +92,7 @@ if (searchInput) {
   });
 }
 
-  
+
 
   const aplicarBtn = document.getElementById('aplicarCategorias');
   if (aplicarBtn) {

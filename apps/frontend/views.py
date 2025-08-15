@@ -5,3 +5,6 @@ def index(request):
 
 def nosotros(request):
     return render(request, "nosotros.html")
+
+def product_detail(request, id):
+    return render(request, 'product_detail.html')
