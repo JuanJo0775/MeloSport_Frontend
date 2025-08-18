@@ -2,11 +2,16 @@
 /* eslint-disable no-unused-vars */
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
-// Estado global de filtros
-window.categoriasSeleccionadas = window.categoriasSeleccionadas || [];   // IDs seleccionados desde el modal (padre/hija)
-window.absolutasSeleccionadas = window.absolutasSeleccionadas || [];    // IDs seleccionados desde la barra de absolutas
-window.terminoBusqueda = window.terminoBusqueda || "";
-window.criterioOrden = window.criterioOrden || "";
+// Estado global (una sola fuente de la verdad)
+let currentPage = 1;
+let terminoBusqueda = "";
+let categoriasSeleccionadas = [];
+let categoriasAbsolutasSeleccionadas = [];
+let precioMin = "";
+let precioMax = "";
+let ordenActual = "";  // 'price' | '-price' | 'name' | '-created_at' | 'created_at' | 'in_stock'
+let enStock = null;    // true/false/null
+
 
 
 const inputBusqueda = document.getElementById("busqueda");
@@ -614,28 +619,44 @@ document.addEventListener("DOMContentLoaded", () => {
   cargarProductos();
 
   // Listener para el select de orden
-  const ordenSelect = document.getElementById("ordenSelect");
-  if (ordenSelect) {
-    ordenSelect.addEventListener("change", () => {
-      switch (ordenSelect.value) {
+  const selectOrden = document.getElementById("ordenSelect");
+  const inputMin = document.getElementById("priceMin");
+  const inputMax = document.getElementById("priceMax");
+
+  if (selectOrden) {
+    selectOrden.addEventListener("change", () => {
+      const v = selectOrden.value;
+      // Mapeo UI -> API
+      switch (v) {
         case "precio-asc":
-          criterioOrden = "price";
-          break;
+          ordenActual = "price"; break;
         case "precio-desc":
-          criterioOrden = "-price";
-          break;
+          ordenActual = "-price"; break;
         case "nombre":
-          criterioOrden = "name";
-          break;
+          ordenActual = "name"; break;
+        case "recientes":
+          ordenActual = "-created_at"; break;
+        case "antiguos":
+          ordenActual = "created_at"; break;
         case "disponibilidad":
-          criterioOrden = "-total_stock";
-          break;
+          ordenActual = "in_stock"; break; // opcional si el backend lo soporta
         default:
-          criterioOrden = "";
+          ordenActual = "";
       }
-      cargarProductos();
+      cargarProductos(true);
     });
   }
+
+  function handlePriceChange() {
+    precioMin = inputMin && inputMin.value ? inputMin.value : "";
+    precioMax = inputMax && inputMax.value ? inputMax.value : "";
+    cargarProductos(true);
+  }
+
+  if (inputMin) inputMin.addEventListener("change", handlePriceChange);
+  if (inputMax) inputMax.addEventListener("change", handlePriceChange);
+
+
 // FORMULARIO DE BÚSQUEDA (submit)
 const formBusqueda = document.getElementById("formBusquedaProductos");
 if (formBusqueda) {
