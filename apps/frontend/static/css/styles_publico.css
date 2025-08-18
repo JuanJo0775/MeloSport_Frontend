@@ -451,3 +451,43 @@ footer {
   flex-direction: column;
   justify-content: flex-start;
 }
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  z-index: 1050;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.autocomplete-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #f1f1f1;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.autocomplete-dropdown button:hover,
+.autocomplete-dropdown button.active {
+  background: #f8f9fa;
+}
+
+.autocomplete-dropdown .section-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  padding: 6px 10px;
+  background: #f1f1f1;
+  border-bottom: 1px solid #ddd;
+}

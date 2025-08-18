@@ -9,6 +9,33 @@ window.terminoBusqueda = window.terminoBusqueda || "";
 window.criterioOrden = window.criterioOrden || "";
 
 
+const inputBusqueda = document.getElementById("busqueda");
+const sugerenciasDiv = document.getElementById("sugerencias");
+const formBusqueda = document.getElementById("formBusqueda");
+
+if (formBusqueda && inputBusqueda) {
+  formBusqueda.addEventListener("submit", (e) => {
+    e.preventDefault();
+    terminoBusqueda = inputBusqueda.value.trim();
+    categoriasSeleccionadas = [];
+    cargarProductos(true);
+  });
+
+  inputBusqueda.addEventListener("input", debounce(async () => {
+    const q = inputBusqueda.value.trim();
+    if (q.length < 2) {
+      sugerenciasDiv.innerHTML = "";
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/products/autocomplete/?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      renderSugerencias(data);
+    } catch (err) {
+      console.error("❌ Autocomplete fetch error:", err);
+    }
+  }, 300));
+}
 
 // Utilidades
 
@@ -124,32 +151,32 @@ function renderCarousel(items) {
 
 // PRODUCTOS (carga y render)
 
-async function cargarProductos() {
-  let url = `${API_BASE_URL}/products/?page=1`;
-
-  if (categoriasSeleccionadas.length) {
-    url += `&categories=${categoriasSeleccionadas.join(",")}`;
-  }
-  if (absolutasSeleccionadas.length) {
-    url += `&absolute_categories=${absolutasSeleccionadas.join(",")}`;
-  }
-  if (terminoBusqueda.trim() !== "") {
-    url += `&search=${encodeURIComponent(terminoBusqueda.trim())}`;
-  }
-  if (criterioOrden) {
-    url += `&ordering=${criterioOrden}`;
-  }
-
+async function cargarProductos(resetPage = false) {
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Error al obtener productos: ${res.status}`);
-    const data = await res.json();
-    const items = data.results || data || [];
-    renderProducts(items);
+    if (resetPage) currentPage = 1;
+
+    const params = new URLSearchParams();
+    params.set("page", String(currentPage));
+
+    // filtros
+    if (terminoBusqueda && terminoBusqueda.trim() !== "") {
+      params.set("search", terminoBusqueda.trim());
+    }
+    if (categoriasSeleccionadas.length > 0) {
+      params.set("categories", categoriasSeleccionadas.join(",")); // IDs
+    }
+    if (categoriasAbsolutasSeleccionadas.length > 0) {
+      params.set("absolute_categories", categoriasAbsolutasSeleccionadas.join(",")); // IDs absolutos
+    }
+    if (precioMin) params.set("price_min", String(precioMin));
+    if (precioMax) params.set("price_max", String(precioMax));
+    if (ordenActual) params.set("ordering", ordenActual);
+    if (enStock !== null) params.set("in_stock", String(enStock));
+
+    const url = `${API_BASE_URL}/products/?${params.toString()}`;
+    // ... (tu fetch + render actual)
   } catch (err) {
-    console.error("❌ Productos:", err);
-    const container = document.getElementById("productosContainer");
-    showErrorPlaceholder(container, "No pudimos cargar los productos ahora.");
+    console.error("❌ cargarProductos:", err);
   }
 }
 
@@ -609,125 +636,139 @@ document.addEventListener("DOMContentLoaded", () => {
       cargarProductos();
     });
   }
+// FORMULARIO DE BÚSQUEDA (submit)
+const formBusqueda = document.getElementById("formBusquedaProductos");
+if (formBusqueda) {
+  formBusqueda.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("busqueda");
+    if (!input) {
+      console.warn("⚠️ No se encontró el input de búsqueda");
+      return;
+    }
+    terminoBusqueda = input.value.trim();
+    categoriasSeleccionadas = [];
+    cargarProductos(true);
+  });
+}
 
-  // FORMULARIO DE BÚSQUEDA (submit)
-  const formBusqueda = document.getElementById("formBusquedaProductos");
-  if (formBusqueda) {
-    formBusqueda.addEventListener("submit", (e) => {
+// AUTOCOMPLETADO
+const inputBusqueda = document.getElementById("busqueda"); // 👈 corregido
+if (inputBusqueda) {
+  const sugerenciasDiv = document.createElement("div");
+  sugerenciasDiv.className = "list-group position-absolute w-100";
+  sugerenciasDiv.style.zIndex = "1000";
+  sugerenciasDiv.style.maxHeight = "250px";
+  sugerenciasDiv.style.overflowY = "auto";
+  inputBusqueda.parentNode.appendChild(sugerenciasDiv);
+
+  let timeout = null;
+  let selectedIndex = -1; // para manejar teclas ↑ ↓
+
+  inputBusqueda.addEventListener("input", () => {
+    clearTimeout(timeout);
+    const query = inputBusqueda.value.trim();
+    selectedIndex = -1;
+    if (!query) {
+      sugerenciasDiv.innerHTML = "";
+      return;
+    }
+
+    timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/products/autocomplete/?q=${encodeURIComponent(query)}`
+        );
+        if (!res.ok) throw new Error("Error en autocompletado");
+        const data = await res.json();
+        renderSugerencias(data);
+      } catch (err) {
+        console.error("❌ Autocomplete:", err);
+      }
+    }, 300);
+  });
+
+  // Navegación con teclas ↑ ↓ y Enter
+  inputBusqueda.addEventListener("keydown", (e) => {
+    const items = sugerenciasDiv.querySelectorAll(".list-group-item, button");
+    if (!items.length) return;
+
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      const input = document.getElementById("inputBusqueda");
-      terminoBusqueda = input ? input.value : "";
-      cargarProductos();
+      selectedIndex = (selectedIndex + 1) % items.length;
+      updateHighlight(items);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      updateHighlight(items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < items.length) {
+        items[selectedIndex].click();
+      } else {
+        formBusqueda?.requestSubmit();
+      }
+    }
+  });
+
+  function updateHighlight(items) {
+    items.forEach((item, idx) => {
+      item.classList.toggle("active", idx === selectedIndex);
     });
   }
 
-  // AUTOCOMPLETADO
-  const inputBusqueda = document.getElementById("inputBusqueda");
-  if (inputBusqueda) {
-    const sugerenciasDiv = document.createElement("div");
-    sugerenciasDiv.className = "list-group position-absolute w-100";
-    sugerenciasDiv.style.zIndex = "1000";
-    sugerenciasDiv.style.maxHeight = "250px";
-    sugerenciasDiv.style.overflowY = "auto";
-    inputBusqueda.parentNode.appendChild(sugerenciasDiv);
+  function renderSugerencias(data) {
+    sugerenciasDiv.innerHTML = "";
+    const { productos = [], categorias = [] } = data;
 
-    let timeout = null;
-    let selectedIndex = -1; // para manejar teclas ↑ ↓
+    if (!productos.length && !categorias.length) {
+      sugerenciasDiv.innerHTML = `<div class="p-2 text-muted">Sin resultados</div>`;
+      return;
+    }
 
-    inputBusqueda.addEventListener("input", () => {
-      clearTimeout(timeout);
-      const query = inputBusqueda.value.trim();
-      selectedIndex = -1;
-      if (!query) {
-        sugerenciasDiv.innerHTML = "";
-        return;
-      }
+    if (productos.length) {
+      const header = document.createElement("div");
+      header.className = "px-2 py-1 text-uppercase small fw-bold border-bottom bg-light";
+      header.textContent = "Productos";
+      sugerenciasDiv.appendChild(header);
 
-      timeout = setTimeout(async () => {
-        try {
-          const res = await fetch(`${API_BASE_URL}/products/autocomplete/?q=${encodeURIComponent(query)}`);
-          if (!res.ok) throw new Error("Error en autocompletado");
-          const data = await res.json();
-          renderSugerencias(data);
-        } catch (err) {
-          console.error("❌ Autocomplete:", err);
-        }
-      }, 300);
-    });
-
-    // Navegación con teclas ↑ ↓ y Enter
-    inputBusqueda.addEventListener("keydown", (e) => {
-      const items = sugerenciasDiv.querySelectorAll(".list-group-item");
-      if (!items.length) return;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        selectedIndex = (selectedIndex + 1) % items.length;
-        updateHighlight(items);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-        updateHighlight(items);
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < items.length) {
-          items[selectedIndex].click();
-        } else {
-          formBusqueda?.requestSubmit();
-        }
-      }
-    });
-
-    function updateHighlight(items) {
-      items.forEach((item, idx) => {
-        item.classList.toggle("active", idx === selectedIndex);
+      productos.forEach((nombre) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "list-group-item list-group-item-action";
+        item.textContent = `🛍 ${nombre}`;
+        item.addEventListener("click", () => {
+          inputBusqueda.value = nombre;
+          sugerenciasDiv.innerHTML = "";
+          terminoBusqueda = nombre;
+          categoriasSeleccionadas = [];
+          cargarProductos(true);
+        });
+        sugerenciasDiv.appendChild(item);
       });
     }
 
-    function renderSugerencias(data) {
-      sugerenciasDiv.innerHTML = "";
+    if (categorias.length) {
+      const header = document.createElement("div");
+      header.className = "px-2 py-1 text-uppercase small fw-bold border-bottom bg-light";
+      header.textContent = "Categorías";
+      sugerenciasDiv.appendChild(header);
 
-      const { productos = [], categorias = [] } = data;
-
-      if (!productos.length && !categorias.length) {
-        sugerenciasDiv.innerHTML = `<div class="list-group-item text-muted">Sin resultados</div>`;
-        return;
-      }
-
-      // Productos sugeridos
-      if (productos.length) {
-        productos.forEach(p => {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "list-group-item list-group-item-action";
-          item.textContent = `🛍 ${p}`;
-          item.addEventListener("click", () => {
-            inputBusqueda.value = p; // autocompletar input
-            sugerenciasDiv.innerHTML = "";
-            terminoBusqueda = p;
-            cargarProductos();
-          });
-          sugerenciasDiv.appendChild(item);
+      categorias.forEach((c) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "list-group-item list-group-item-action";
+        item.textContent = `📂 ${c.name}`;
+        item.addEventListener("click", () => {
+          inputBusqueda.value = c.name;
+          sugerenciasDiv.innerHTML = "";
+          terminoBusqueda = "";
+          categoriasSeleccionadas = [String(c.id)];
+          cargarProductos(true);
         });
-      }
-
-      // Categorías sugeridas
-      if (categorias.length) {
-        categorias.forEach(c => {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "list-group-item list-group-item-action";
-          item.textContent = `📂 ${c}`;
-          item.addEventListener("click", () => {
-            inputBusqueda.value = c; // autocompletar input
-            sugerenciasDiv.innerHTML = "";
-            terminoBusqueda = "";
-            categoriasSeleccionadas = [c];
-            cargarProductos();
-          });
-          sugerenciasDiv.appendChild(item);
-        });
-      }
+        sugerenciasDiv.appendChild(item);
+      });
     }
   }
+}
 });

@@ -57,13 +57,10 @@
 
                 <!-- Barra de búsqueda -->
                 <form id="formBusquedaProductos" class="d-flex me-3" role="search" aria-label="Buscar productos">
-                    <div class="input-group">
-                        <input id="inputBusqueda" class="form-control" type="search" placeholder="Buscar productos..."
-                               aria-label="Buscar productos" name="busqueda">
-                        <button class="btn btn-outline-primary" type="submit" aria-label="Buscar">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+                  <div class="search-wrapper" style="position: relative; max-width: 400px; margin: 0 auto;">
+                    <input id="busqueda" type="text" class="form-control" placeholder="Buscar productos...">
+                    <div id="sugerencias" class="autocomplete-dropdown"></div>
+                  </div>
                 </form>
 
 
