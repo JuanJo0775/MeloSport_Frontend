@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <!-- Filtros -->
+<!-- Filtros -->
 <div class="row mb-4">
   <div class="col-lg-6 col-md-12 mb-2">
     <div id="categoriasContainer" class="d-flex flex-wrap gap-2" aria-label="Filtros por categoría"></div>
@@ -47,18 +47,22 @@
     </div>
   </div>
 
-  <div class="col-lg-3 col-md-6">
-    <select class="form-select" aria-label="Ordenar productos" id="ordenSelect">
-      <option value="" selected>Ordenar por...</option>
-      <option value="precio-asc">Precio: Menor a Mayor</option>
-      <option value="precio-desc">Precio: Mayor a Menor</option>
-      <option value="nombre">Nombre A-Z</option>
-      <option value="recientes">Más recientes</option>
-      <option value="antiguos">Más antiguos</option>
-      <option value="disponibilidad">Disponibilidad</option>
-    </select>
+  <div class="col-lg-3 col-md-6 mb-2">
+    <div class="d-flex gap-2">
+        <select class="form-select" aria-label="Ordenar productos" id="ordenSelect">
+          <option value="" disabled selected>Ordenar por...</option>
+          <option value="-created_at">Más recientes</option>
+          <option value="created_at">Más antiguos</option>
+          <option value="price">Precio: Menor a Mayor</option>
+          <option value="-price">Precio: Mayor a Menor</option>
+          <option value="name">Nombre A-Z</option>
+          <option value="-name">Nombre Z-A</option>
+        </select>
+      <button id="btnLimpiarFiltros" class="btn btn-outline-secondary">Limpiar</button>
+    </div>
   </div>
 </div>
+
 
 
 <!-- Grid de Productos -->

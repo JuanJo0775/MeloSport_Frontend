@@ -194,13 +194,15 @@ async function getProducts(params = {}) {
 
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.log('⏹️ Petición cancelada');
-      return null;
+      console.log('⏹️ Petición cancelada (ignorada)');
+      return { items: [], total: 0, page: params.page || 1 };
+      // devolvemos estructura válida, no null
     }
     console.error("❌ Error en getProducts:", error);
     throw error;
   }
 }
+
 
 /**
  * Obtiene categorías en estructura de árbol

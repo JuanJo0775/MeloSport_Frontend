@@ -491,3 +491,13 @@ footer {
   background: #f1f1f1;
   border-bottom: 1px solid #ddd;
 }
+
+.state-card .emoji {
+  font-size: 3rem;
+}
+.state-card {
+  max-width: 500px;
+  margin: 40px auto;
+  border: 1px solid #eee;
+  background: #fff;
+}

@@ -358,13 +358,87 @@ function renderCarousel(items) {
  * Carga productos con filtros aplicados
  * @param {boolean} resetPage - Reiniciar página a 1
  */
+
+// 🔵 Loader visual (spinner + mensaje amigable)
+function showSkeleton(container) {
+  container.innerHTML = `
+    <div class="text-center p-5">
+      <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <h6 class="fw-bold">Cargando productos...</h6>
+      <p class="text-muted">Un momento, estamos preparando lo mejor para ti 😉</p>
+    </div>
+  `;
+}
+
+
+// 🟥 No hay productos
+function showNoProducts(container) {
+  container.innerHTML = `
+    <div class="state-card text-center p-5 bg-light rounded shadow-sm">
+      <div class="emoji mb-3">📦</div>
+      <h5 class="fw-bold">Ups... todavía no hay nada por aquí</h5>
+      <p class="text-muted">Parece que no tenemos productos disponibles en este momento.</p>
+      <button id="resetFilters" class="btn btn-outline-primary mt-3">
+        🔄 Reiniciar filtros
+      </button>
+    </div>
+  `;
+  document.getElementById("resetFilters")?.addEventListener("click", () => {
+    window.ordenActual = "";
+    window.precioMin = "";
+    window.precioMax = "";
+    window.terminoBusqueda = "";
+    window.categoriasSeleccionadas = [];
+    window.absolutasSeleccionadas = [];
+    cargarProductos(true);
+  });
+}
+
+// 🟨 Sin resultados de búsqueda
+function showNoResults(container, query) {
+  container.innerHTML = `
+    <div class="state-card text-center p-5 bg-light rounded shadow-sm">
+      <div class="emoji mb-3">🔍</div>
+      <h5 class="fw-bold">No encontramos nada para "<span class="text-primary">${query}</span>"</h5>
+      <p class="text-muted">Intenta con otra palabra clave o elimina los filtros.</p>
+      <button id="resetFilters" class="btn btn-outline-secondary mt-3">
+        ❌ Quitar filtros
+      </button>
+    </div>
+  `;
+  document.getElementById("resetFilters")?.addEventListener("click", () => {
+    window.terminoBusqueda = "";
+    window.categoriasSeleccionadas = [];
+    window.absolutasSeleccionadas = [];
+    cargarProductos(true);
+  });
+}
+
+// 🟩 Error de conexión
+function showErrorConnection(container) {
+  container.innerHTML = `
+    <div class="state-card text-center p-5 bg-light rounded shadow-sm">
+      <div class="emoji mb-3">⚠️</div>
+      <h5 class="fw-bold text-danger">Ups, algo salió mal</h5>
+      <p class="text-muted">No pudimos conectar con el servidor. Revisa tu conexión e inténtalo otra vez.</p>
+      <button id="retryLoad" class="btn btn-primary mt-3">🔄 Reintentar</button>
+    </div>
+  `;
+  document.getElementById("retryLoad")?.addEventListener("click", () => {
+    cargarProductos(true);
+  });
+}
+
+// 🟦 Función principal mejorada
 async function cargarProductos(resetPage = false) {
   if (resetPage) currentPage = 1;
 
   const params = {
     page: currentPage,
-    categories: window.categoriasSeleccionadas,
-    absoluteCategories: window.absolutasSeleccionadas,
+    categories: window.categoriasSeleccionadas || [],
+    absoluteCategories: window.absolutasSeleccionadas || [],
     search: window.terminoBusqueda || "",
     priceMin: window.precioMin || "",
     priceMax: window.precioMax || "",
@@ -372,18 +446,31 @@ async function cargarProductos(resetPage = false) {
     inStock: window.enStock !== null ? window.enStock : undefined
   };
 
+  const container = document.getElementById("productosContainer");
+
+  // ⏳ Mostrar skeletons antes de la petición
+  showSkeleton(container);
+
   try {
     const data = await window.apiService.getProducts(params);
-    if (data && data.items) {
-      renderProducts(data.items);
-    } else {
-      const container = document.getElementById("productosContainer");
-      showErrorPlaceholder(container, "No se pudieron cargar los productos.");
+
+    // 🚨 Si fue cancelada, no hacer nada
+    if (!data) return;
+
+    if (!data.items || data.items.length === 0) {
+      if (params.search) {
+        showNoResults(container, params.search);
+      } else {
+        showNoProducts(container);
+      }
+      return;
     }
+
+    renderProducts(data.items);
+    currentPage = data.page; // mantener la paginación correcta
   } catch (err) {
     console.error("❌ Error en cargarProductos:", err);
-    const container = document.getElementById("productosContainer");
-    showErrorPlaceholder(container, "Error al cargar productos. Intenta de nuevo.");
+    showErrorConnection(container);
   }
 }
 
@@ -454,6 +541,7 @@ function renderAbsoluteCategoriesBar(absCategories) {
 // ======================== Inicialización ========================
 
 document.addEventListener("DOMContentLoaded", () => {
+
   // Cargar carrusel
   window.apiService.getCarouselItems().then(items => {
     const infoSlides = window.apiService.getInfoSlides();
@@ -515,35 +603,48 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectOrden = document.getElementById("ordenSelect");
   const inputMin = document.getElementById("priceMin");
   const inputMax = document.getElementById("priceMax");
+  const btnLimpiar = document.getElementById("btnLimpiarFiltros");
+if (btnLimpiar) {
+  btnLimpiar.addEventListener("click", () => {
+    // Resetear inputs
+    const selectOrden = document.getElementById("ordenSelect");
+    const inputMin = document.getElementById("priceMin");
+    const inputMax = document.getElementById("priceMax");
+    const inputBusqueda = document.getElementById("busqueda");
+
+    if (selectOrden) selectOrden.selectedIndex = 0; // vuelve al placeholder "Ordenar por..."
+    if (inputMin) inputMin.value = "";
+    if (inputMax) inputMax.value = "";
+    if (inputBusqueda) inputBusqueda.value = "";
+
+    // Resetear variables globales
+    window.ordenActual = "";   // backend usará -created_at por defecto
+    window.precioMin = "";
+    window.precioMax = "";
+    window.terminoBusqueda = "";
+    window.categoriasSeleccionadas = [];
+    window.absolutasSeleccionadas = [];
+
+    // Recargar productos al estado default
+    cargarProductos(true);
+  });
+}
+
 
   if (selectOrden) {
-    selectOrden.addEventListener("change", () => {
-      const value = selectOrden.value;
-      switch (value) {
-        case "precio-asc":
-          window.ordenActual = "price";
-          break;
-        case "precio-desc":
-          window.ordenActual = "-price";
-          break;
-        case "nombre":
-          window.ordenActual = "name";
-          break;
-        case "recientes":
-          window.ordenActual = "-created_at";
-          break;
-        case "antiguos":
-          window.ordenActual = "created_at";
-          break;
-        case "disponibilidad":
-          window.ordenActual = "in_stock";
-          break;
-        default:
-          window.ordenActual = "";
-      }
-      cargarProductos(true);
-    });
+  const allowed = new Set(["-created_at", "created_at", "price", "-price", "name", "-name"]);
+  selectOrden.addEventListener("change", () => {
+    const value = (selectOrden.value || "").trim();
+    window.ordenActual = allowed.has(value) ? value : "";
+    cargarProductos(true);
+  });
+
+  // Si ya había un orden activo (navegación previa), reflejarlo en el select
+  if (window.ordenActual && allowed.has(window.ordenActual)) {
+    selectOrden.value = window.ordenActual;
   }
+}
+
 
   function handlePriceChange() {
     window.precioMin = inputMin && inputMin.value ? inputMin.value : "";
@@ -556,20 +657,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Formulario de búsqueda
   const formBusqueda = document.getElementById("formBusquedaProductos");
+  const inputBusqueda = document.getElementById("busqueda");
   if (formBusqueda) {
     formBusqueda.addEventListener("submit", e => {
       e.preventDefault();
-      const input = document.getElementById("busqueda");
-      if (input) {
-        window.terminoBusqueda = input.value.trim();
-        window.categoriasSeleccionadas = [];
-        cargarProductos(true);
-      }
+      window.terminoBusqueda = inputBusqueda?.value?.trim() || "";
+      window.categoriasSeleccionadas = [];
+      cargarProductos(true);
     });
   }
 
   // Autocompletado
-  const inputBusqueda = document.getElementById("busqueda");
+
   if (inputBusqueda) {
     const sugerenciasDiv = document.createElement("div");
     sugerenciasDiv.className = "list-group position-absolute w-100";
@@ -643,20 +742,21 @@ document.addEventListener("DOMContentLoaded", () => {
         header.textContent = "Productos";
         container.appendChild(header);
 
-        productos.forEach(nombre => {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "list-group-item list-group-item-action";
-          item.textContent = `🛍 ${nombre}`;
-          item.addEventListener("click", () => {
-            inputBusqueda.value = nombre;
-            container.innerHTML = "";
-            window.terminoBusqueda = nombre;
-            window.categoriasSeleccionadas = [];
-            cargarProductos(true);
-          });
-          container.appendChild(item);
+      productos.forEach(nombre => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "list-group-item list-group-item-action";
+        item.textContent = `🛍 ${nombre}`;
+        item.addEventListener("click", () => {
+          // ✅ rellenamos input y seteamos el search
+          inputBusqueda.value = nombre;
+          container.innerHTML = "";
+          window.terminoBusqueda = nombre;   // se usará como search
+          window.categoriasSeleccionadas = []; // limpiar categorías
+          cargarProductos(true);  // pide /products/?search=nombre
         });
+        container.appendChild(item);
+      });
       }
 
       if (categorias.length) {
