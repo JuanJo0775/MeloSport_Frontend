@@ -314,6 +314,7 @@ function renderCarousel(items) {
   }
 
   items.forEach((item, index) => {
+    // 🔘 Indicadores
     const indicator = document.createElement("button");
     indicator.type = "button";
     indicator.setAttribute("data-bs-target", "#promocionesCarousel");
@@ -325,26 +326,151 @@ function renderCarousel(items) {
     const isInfo = item.type === "info";
     const title = item.customTitle || item.productName || "Destacado";
     const subtitle = item.customSubtitle || "";
-    const href = item.ctaHref || (isInfo ? "#" : `/productos/${item.productId}`);
+    const href = item.ctaHref || (isInfo ? "#" : (item.productId ? `/productos/${item.productId}` : "#"));
     const cta = item.ctaLabel || (isInfo ? "Ver más" : "Ver producto");
-    const bg = item.bg || "bg-primary";
-    const text = item.text || "text-white";
+    const layout = item.layout || "default";
 
-    const slide = document.createElement("div");
-    slide.className = `carousel-item ${index === 0 ? "active" : ""}`;
-    slide.innerHTML = `
-      <div class="${bg} ${text} py-5" style="min-height: 400px;">
-        <div class="container">
+    // 🎨 Color personalizado con contraste
+    let bgStyle = "";
+    let textClass = "text-white";
+    if (item.bgColor) {
+      bgStyle = `background-color: ${item.bgColor};`;
+      const hex = item.bgColor.replace("#", "");
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      if (luminance > 0.6) textClass = "text-dark";
+    }
+
+    // 📸 Manejo de imágenes (productos o informativas)
+    const images = item.images || [];
+    let imageBlock = "";
+    if (images.length > 0) {
+      imageBlock = images
+        .slice(0, 3)
+        .map(
+          url => `<img src="${url}" alt="${title}" class="img-fluid rounded shadow-sm m-2" style="max-height:200px; object-fit:cover;">`
+        )
+        .join("");
+    } else {
+      imageBlock = `<i class="fas fa-bullhorn display-1 opacity-50"></i>`;
+    }
+
+    // 🔘 Botón (siempre visible)
+    const buttonHtml =
+      href && href !== "#"
+        ? `<a href="${href}" class="btn btn-light btn-lg">${cta}</a>`
+        : `<button class="btn btn-light btn-lg" disabled>${cta}</button>`;
+
+    // 🖼️ Contenido según layout
+    let contentHtml = "";
+    switch (layout) {
+      case "full_text":
+        contentHtml = `
+          <div class="text-center">
+            <h1 class="display-5 fw-bold mb-2">${title}</h1>
+            ${subtitle ? `<p class="lead mb-4">${subtitle}</p>` : ""}
+            ${buttonHtml}
+          </div>
+        `;
+        break;
+
+      case "icon_text":
+        contentHtml = `
+          <div class="text-center">
+            <i class="fas fa-star fa-3x mb-3"></i>
+            <h1 class="display-6 fw-bold">${title}</h1>
+            <p>${subtitle}</p>
+            ${buttonHtml}
+          </div>
+        `;
+        break;
+
+      case "two_img":
+      case "three_img":
+        const cols = layout === "two_img" ? 2 : 3;
+        contentHtml = `
+          <div class="row">
+            <div class="col-12 mb-3 text-center">
+              <h1 class="fw-bold">${title}</h1>
+              ${subtitle ? `<p>${subtitle}</p>` : ""}
+              ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
+              ${buttonHtml}
+            </div>
+            ${images
+              .slice(0, cols)
+              .map(img => `<div class="col-md-${12 / cols}"><img src="${img}" class="img-fluid rounded"></div>`)
+              .join("")}
+          </div>
+        `;
+        break;
+
+      case "image_bg":
+        contentHtml = `
+          <div class="position-relative text-center text-white" 
+               style="background:url('${images[0] || ""}') center/cover no-repeat; min-height:400px;">
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,0.5);"></div>
+            <div class="position-relative p-5">
+              <h1 class="display-5 fw-bold">${title}</h1>
+              ${subtitle ? `<p class="lead mb-3">${subtitle}</p>` : ""}
+              ${!isInfo && item.productPrice ? `<p class="fw-bold fs-3">$${item.productPrice}</p>` : ""}
+              ${buttonHtml}
+            </div>
+          </div>
+        `;
+        break;
+
+      case "split_banner":
+        contentHtml = `
+          <div class="row align-items-center">
+            <div class="col-md-6 text-center">
+              ${images[0] ? `<img src="${images[0]}" class="img-fluid rounded shadow">` : ""}
+            </div>
+            <div class="col-md-6">
+              <h2 class="fw-bold">${title}</h2>
+              ${subtitle ? `<p>${subtitle}</p>` : ""}
+              ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
+              ${buttonHtml}
+            </div>
+          </div>
+        `;
+        break;
+
+      case "minimal":
+        contentHtml = `
+          <div class="text-center">
+            <h2 class="fw-bold">${title}</h2>
+            ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
+            ${buttonHtml}
+          </div>
+        `;
+        break;
+
+      default:
+        // layout: default
+        contentHtml = `
           <div class="row align-items-center">
             <div class="col-lg-6">
               <h1 class="display-5 fw-bold mb-2">${title}</h1>
               ${subtitle ? `<p class="lead mb-4">${subtitle}</p>` : ""}
-              <a href="${href}" class="btn btn-light btn-lg">${cta}</a>
+              ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
+              ${buttonHtml}
             </div>
             <div class="col-lg-6 text-center">
-              <i class="fas fa-futbol display-1 opacity-50"></i>
+              ${imageBlock}
             </div>
           </div>
+        `;
+    }
+
+    // 🎠 Slide final
+    const slide = document.createElement("div");
+    slide.className = `carousel-item ${index === 0 ? "active" : ""}`;
+    slide.innerHTML = `
+      <div class="py-5 ${textClass}" style="min-height: 400px; ${bgStyle}">
+        <div class="container">
+          ${contentHtml}
         </div>
       </div>
     `;
@@ -544,8 +670,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Cargar carrusel
   window.apiService.getCarouselItems().then(items => {
-    const infoSlides = window.apiService.getInfoSlides();
-    renderCarousel([...infoSlides, ...items]);
+    renderCarousel(items); // 🚀 solo con lo que venga del backend
   });
 
   // Cargar categorías absolutas

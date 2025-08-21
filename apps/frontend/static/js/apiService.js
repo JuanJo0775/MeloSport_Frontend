@@ -307,35 +307,49 @@ async function getAbsoluteCategories() {
 async function getCarouselItems() {
   try {
     const response = await fetch(`${API_BASE_URL}/carousel/?is_active=true`);
-
-    if (!response.ok) {
-      throw new Error("Error al obtener items del carrusel");
-    }
+    if (!response.ok) throw new Error("Error al obtener items del carrusel");
 
     const data = await response.json();
     const items = data.results || data || [];
 
-    const normalized = items.map(item => ({
-      id: item.id,
-      type: "product",
-      productId: item.product_id,
-      productName: item.product_name || "Producto destacado",
-      customTitle: item.custom_title || null,
-      customSubtitle: item.custom_subtitle || null,
-      ctaLabel: item.cta_label || "Ver producto",
-      ctaHref: item.product_id ? `/productos/${item.product_id}` : "#",
-      bg: item.bg || "bg-primary",
-      text: item.text || "text-white",
-      image: item.image || null,
-      order: item.order || 0
-    }));
+    const normalized = items.map(item => {
+      const isInfo = item.type === "info";
 
-    console.log("🎠 Items del carrusel:", normalized);
+      return {
+        id: item.id,
+        type: isInfo ? "info" : "product",
+
+        // Productos
+        productId: isInfo ? null : item.product_id,
+        productName: isInfo ? null : (item.product_name || "Producto destacado"),
+        productPrice: isInfo ? null : (item.product_price || null),
+
+        // Títulos/subtítulos
+        customTitle: item.custom_title || null,
+        customSubtitle: item.custom_subtitle || null,
+
+        // CTA (siempre presente)
+        ctaLabel: isInfo ? "Ver más" : "Ver producto",
+        ctaHref: isInfo
+          ? (item.cta_href || item.link || "#")
+          : (item.product_id ? `/productos/${item.product_id}` : "#"),
+
+        // Apariencia
+        bgColor: item.bg_color || null,
+        images: item.images && Array.isArray(item.images) ? item.images : [], // siempre lista
+        layout: item.layout || "default",
+
+        // Orden y flags
+        order: typeof item.display_order !== "undefined" ? item.display_order : (item.order || 0),
+        isDefault: item.is_default || false
+      };
+    });
+
+    console.log("🎠 Items del carrusel normalizados:", normalized);
     return normalized;
 
   } catch (error) {
     console.error("❌ Error en getCarouselItems:", error);
-    // Devolver array vacío en lugar de lanzar error para no romper la UI
     return [];
   }
 }
@@ -383,32 +397,6 @@ async function getAutocomplete(query) {
   }
 }
 
-/**
- * Obtiene slides informativos estáticos
- * @returns {Array} Slides informativos
- */
-function getInfoSlides() {
-  return [
-    {
-      type: "info",
-      customTitle: "Promociones de temporada",
-      customSubtitle: "Ahorra en colecciones seleccionadas",
-      ctaLabel: "Ver productos",
-      ctaHref: "#productos",
-      bg: "bg-primary",
-      text: "text-white"
-    },
-    {
-      type: "info",
-      customTitle: "Aviso institucional",
-      customSubtitle: "Atención personalizada a clubes y colegios",
-      ctaLabel: "Contáctanos",
-      ctaHref: "#contacto",
-      bg: "bg-dark",
-      text: "text-light"
-    }
-  ];
-}
 
 /**
  * Obtiene estadísticas del sitio
@@ -454,7 +442,6 @@ if (typeof window !== 'undefined') {
     getAbsoluteCategories,
     getCarouselItems,
     getAutocomplete,
-    getInfoSlides,
     getSiteStats,
     normalizeProduct,
     getProductImageUrl,
