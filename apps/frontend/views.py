@@ -8,3 +8,6 @@ def nosotros(request):
 
 def product_detail(request, id):
     return render(request, 'product_detail.html')
+
+def terminos(request):
+    return render(request, 'terminos.html')

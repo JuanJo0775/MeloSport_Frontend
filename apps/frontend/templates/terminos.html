@@ -1,0 +1,78 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Términos y Políticas - Melosport{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<section class="py-5 text-center shadow-sm" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef);">
+  <div class="container">
+    <img src="{% static 'img/Logo sin fondo azul.png' %}" alt="Melosport" height="80" class="mb-3 fade-in">
+    <h1 class="fw-bold text-primary">Términos y Condiciones</h1>
+    <p class="lead text-muted mb-0">Transparencia, confianza y compromiso contigo</p>
+  </div>
+</section>
+
+<!-- CONTENIDO -->
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+
+      <!-- SECCIÓN 1 -->
+      <div class="card shadow-sm border-0 mb-4 fade-in">
+        <div class="card-body p-4">
+          <h3 class="text-dark d-flex align-items-center mb-3">
+            <i class="bi bi-globe2 text-primary me-2"></i> 1. Uso del sitio
+          </h3>
+          <p class="text-muted">
+            Este sitio web es operado por <strong>Melosport</strong>.
+            Al acceder o utilizar nuestros servicios, aceptas cumplir con todas nuestras políticas de uso y regulaciones vigentes.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2 -->
+      <div class="card shadow-sm border-0 mb-4 fade-in">
+        <div class="card-body p-4">
+          <h3 class="text-dark d-flex align-items-center mb-3">
+            <i class="bi bi-shield-lock text-success me-2"></i> 2. Políticas de privacidad
+          </h3>
+          <p class="text-muted">
+            Nos comprometemos a proteger tu información personal.
+            Los datos recopilados serán tratados con estricta confidencialidad y utilizados únicamente para fines comerciales legítimos, garantizando tu seguridad y confianza.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 3 -->
+      <div class="card shadow-sm border-0 mb-4 fade-in">
+        <div class="card-body p-4">
+          <h3 class="text-dark d-flex align-items-center mb-3">
+            <i class="bi bi-arrow-repeat text-warning me-2"></i> 3. Devoluciones y reembolsos
+          </h3>
+          <p class="text-muted">
+            Ofrecemos un plazo de <strong>30 días</strong> para devoluciones,
+            siempre que el producto se encuentre en condiciones adecuadas y con su empaque original.
+            Procesaremos reembolsos de manera rápida y clara, buscando tu total satisfacción.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 4 -->
+      <div class="card shadow-sm border-0 mb-4 fade-in">
+        <div class="card-body p-4">
+          <h3 class="text-dark d-flex align-items-center mb-3">
+            <i class="bi bi-envelope-open text-danger me-2"></i> 4. Contacto
+          </h3>
+          <p class="text-muted">
+            Para cualquier duda o consulta acerca de estos términos o nuestras políticas,
+            puedes comunicarte con nuestro equipo a través de la página
+            <a href="{% url 'nosotros' %}" class="text-primary fw-bold text-decoration-none">Nosotros</a>.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

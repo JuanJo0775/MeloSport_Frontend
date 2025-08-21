@@ -302,19 +302,19 @@ function renderCarousel(items) {
   if (!items || items.length === 0) {
     inner.innerHTML = `
       <div class="carousel-item active">
-        <div class="bg-secondary text-white py-5" style="min-height: 300px;">
-          <div class="container text-center">
+        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="min-height: 400px;">
+          <div class="text-center">
+            <i class="fas fa-box-open fa-3x mb-3 opacity-75"></i>
             <h2 class="fw-bold">Sin promociones disponibles</h2>
             <p class="mb-0">Vuelve más tarde o explora nuestros productos destacados.</p>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
     return;
   }
 
   items.forEach((item, index) => {
-    // 🔘 Indicadores
+    // Indicadores
     const indicator = document.createElement("button");
     indicator.type = "button";
     indicator.setAttribute("data-bs-target", "#promocionesCarousel");
@@ -330,9 +330,10 @@ function renderCarousel(items) {
     const cta = item.ctaLabel || (isInfo ? "Ver más" : "Ver producto");
     const layout = item.layout || "default";
 
-    // 🎨 Color personalizado con contraste
+    // 🎨 Fondo y contraste
     let bgStyle = "";
     let textClass = "text-white";
+    let btnClass = "btn-light";
     if (item.bgColor) {
       bgStyle = `background-color: ${item.bgColor};`;
       const hex = item.bgColor.replace("#", "");
@@ -340,140 +341,135 @@ function renderCarousel(items) {
       const g = parseInt(hex.substring(2, 4), 16);
       const b = parseInt(hex.substring(4, 6), 16);
       const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      if (luminance > 0.6) textClass = "text-dark";
+      if (luminance > 0.6) {
+        textClass = "text-dark";
+        btnClass = "btn-dark";
+      }
     }
 
-    // 📸 Manejo de imágenes (productos o informativas)
+    // 📸 Imágenes
     const images = item.images || [];
     let imageBlock = "";
     if (images.length > 0) {
       imageBlock = images
         .slice(0, 3)
         .map(
-          url => `<img src="${url}" alt="${title}" class="img-fluid rounded shadow-sm m-2" style="max-height:200px; object-fit:cover;">`
+          url =>
+            `<img src="${url}" alt="${title}" class="img-fluid rounded shadow-sm m-2" style="max-height:220px; object-fit:cover;">`
         )
         .join("");
     } else {
       imageBlock = `<i class="fas fa-bullhorn display-1 opacity-50"></i>`;
     }
 
-    // 🔘 Botón (siempre visible)
+    // 🔘 Botón
     const buttonHtml =
       href && href !== "#"
-        ? `<a href="${href}" class="btn btn-light btn-lg">${cta}</a>`
-        : `<button class="btn btn-light btn-lg" disabled>${cta}</button>`;
+        ? `<a href="${href}" class="btn ${btnClass} btn-lg mt-3">${cta}</a>`
+        : "";
 
-    // 🖼️ Contenido según layout
+    // 🖼️ Layouts
     let contentHtml = "";
     switch (layout) {
       case "full_text":
         contentHtml = `
           <div class="text-center">
+            <i class="fas fa-bullhorn fa-3x mb-3 opacity-75"></i>
             <h1 class="display-5 fw-bold mb-2">${title}</h1>
-            ${subtitle ? `<p class="lead mb-4">${subtitle}</p>` : ""}
+            ${subtitle ? `<p class="lead mb-3">${subtitle}</p>` : ""}
             ${buttonHtml}
-          </div>
-        `;
+          </div>`;
         break;
 
       case "icon_text":
         contentHtml = `
           <div class="text-center">
-            <i class="fas fa-star fa-3x mb-3"></i>
-            <h1 class="display-6 fw-bold">${title}</h1>
-            <p>${subtitle}</p>
+            <i class="fas fa-star fa-4x mb-3 text-warning"></i>
+            <h2 class="fw-bold mb-2">${title}</h2>
+            ${subtitle ? `<p class="lead mb-2">${subtitle}</p>` : ""}
             ${buttonHtml}
-          </div>
-        `;
+          </div>`;
         break;
 
-      case "two_img":
       case "three_img":
-        const cols = layout === "two_img" ? 2 : 3;
         contentHtml = `
-          <div class="row">
-            <div class="col-12 mb-3 text-center">
-              <h1 class="fw-bold">${title}</h1>
-              ${subtitle ? `<p>${subtitle}</p>` : ""}
+          <div class="row text-center">
+            <div class="col-12 mb-3">
+              <h2 class="fw-bold">${title}</h2>
+              ${subtitle ? `<p class="lead mb-2">${subtitle}</p>` : ""}
               ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
               ${buttonHtml}
             </div>
             ${images
-              .slice(0, cols)
-              .map(img => `<div class="col-md-${12 / cols}"><img src="${img}" class="img-fluid rounded"></div>`)
+              .slice(0, 3)
+              .map(img => `<div class="col-md-4"><img src="${img}" class="img-fluid rounded shadow-sm" style="max-height:220px; object-fit:cover;"></div>`)
               .join("")}
-          </div>
-        `;
+          </div>`;
         break;
 
       case "image_bg":
         contentHtml = `
-          <div class="position-relative text-center text-white" 
-               style="background:url('${images[0] || ""}') center/cover no-repeat; min-height:400px;">
-            <div class="position-absolute top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,0.5);"></div>
-            <div class="position-relative p-5">
-              <h1 class="display-5 fw-bold">${title}</h1>
+          <div class="position-relative d-flex align-items-center justify-content-center text-center text-white" 
+               style="background:url('${images[0] || ""}') center/cover no-repeat; min-height:400px; border-radius:0.5rem;">
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,0.45);"></div>
+            <div class="position-relative p-4">
+              <h1 class="display-5 fw-bold mb-2">${title}</h1>
               ${subtitle ? `<p class="lead mb-3">${subtitle}</p>` : ""}
               ${!isInfo && item.productPrice ? `<p class="fw-bold fs-3">$${item.productPrice}</p>` : ""}
               ${buttonHtml}
             </div>
-          </div>
-        `;
+          </div>`;
         break;
 
       case "split_banner":
         contentHtml = `
           <div class="row align-items-center">
             <div class="col-md-6 text-center">
-              ${images[0] ? `<img src="${images[0]}" class="img-fluid rounded shadow">` : ""}
+              ${images[0] ? `<img src="${images[0]}" class="img-fluid rounded shadow-sm" style="max-height:250px; object-fit:cover;">` : ""}
             </div>
             <div class="col-md-6">
               <h2 class="fw-bold">${title}</h2>
-              ${subtitle ? `<p>${subtitle}</p>` : ""}
+              ${subtitle ? `<p class="lead mb-2">${subtitle}</p>` : ""}
               ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
               ${buttonHtml}
             </div>
-          </div>
-        `;
+          </div>`;
         break;
 
       case "minimal":
         contentHtml = `
           <div class="text-center">
-            <h2 class="fw-bold">${title}</h2>
+            <i class="fas fa-tag fa-2x mb-2 opacity-75"></i>
+            <h2 class="fw-bold mb-2">${title}</h2>
             ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
             ${buttonHtml}
-          </div>
-        `;
+          </div>`;
         break;
 
       default:
-        // layout: default
         contentHtml = `
           <div class="row align-items-center">
             <div class="col-lg-6">
               <h1 class="display-5 fw-bold mb-2">${title}</h1>
-              ${subtitle ? `<p class="lead mb-4">${subtitle}</p>` : ""}
+              ${subtitle ? `<p class="lead mb-3">${subtitle}</p>` : ""}
               ${!isInfo && item.productPrice ? `<p class="fw-bold fs-4">$${item.productPrice}</p>` : ""}
               ${buttonHtml}
             </div>
             <div class="col-lg-6 text-center">
               ${imageBlock}
             </div>
-          </div>
-        `;
+          </div>`;
     }
 
-    // 🎠 Slide final
+    // 🎠 Slide
     const slide = document.createElement("div");
     slide.className = `carousel-item ${index === 0 ? "active" : ""}`;
     slide.innerHTML = `
-      <div class="py-5 ${textClass}" style="min-height: 400px; ${bgStyle}">
+      <div class="d-flex align-items-center ${textClass}" style="min-height: 400px; ${bgStyle}">
         <div class="container">
           ${contentHtml}
         </div>
-      </div>
-    `;
+      </div>`;
     inner.appendChild(slide);
   });
 }
@@ -680,6 +676,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Cargar productos iniciales
   cargarProductos();
+
+  const searchInput = document.getElementById("searchInput");
+  const clearBtn = document.getElementById("clearSearch");
+
+  if (searchInput && clearBtn) {
+    searchInput.addEventListener("input", () => {
+      clearBtn.style.display = searchInput.value ? "inline-block" : "none";
+    });
+
+    clearBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      clearBtn.style.display = "none";
+      searchInput.focus();
+      // Opcional: recargar lista de productos
+      if (typeof loadProducts === "function") {
+        loadProducts({ search: "" });
+      }
+    });
+  }
 
   // Modal de categorías
   const modalCategorias = document.getElementById("modalCategorias");

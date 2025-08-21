@@ -22,8 +22,14 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top" role="navigation" aria-label="Navegación principal">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'index' %}" aria-label="Ir al inicio">
-                <i class="fas fa-running me-2 text-primary"></i>Melosport
+            <a class="navbar-brand fw-bold d-flex align-items-center"
+               href="{% url 'index' %}"
+               aria-label="Ir al inicio">
+                <img src="{% static 'img/Logo sin fondo azul.png' %}"
+                     alt="Melosport"
+                     height="40"
+                     class="me-2">
+                <span>Melosport</span>
             </a>
 
 
@@ -43,7 +49,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#productos">Productos</a>
+                        <a class="nav-link" href="{% url 'index' %}#productos">Productos</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#contacto">Contacto</a>
@@ -55,20 +61,20 @@
 
                 </ul>
 
-                <!-- Barra de búsqueda -->
-                <form id="formBusquedaProductos" class="d-flex me-3" role="search" aria-label="Buscar productos">
-                  <div class="search-wrapper" style="position: relative; max-width: 400px; margin: 0 auto;">
-                    <input id="busqueda" type="text" class="form-control" placeholder="Buscar productos...">
-                  </div>
+                <form class="d-flex position-relative" role="search">
+                    <input id="searchInput"
+                           class="form-control form-control-lg me-2 pe-5"
+                           type="search"
+                           placeholder="Buscar productos..."
+                           aria-label="Buscar">
+                    <!-- Botón de limpiar -->
+                    <button type="button" id="clearSearch"
+                            class="btn btn-sm btn-light position-absolute end-0 top-50 translate-middle-y me-2"
+                            style="display:none;">
+                        ✖
+                    </button>
                 </form>
 
-
-                <!-- Enlaces de acceso rápido -->
-                <div class="d-flex">
-                    <a href="#" class="btn btn-outline-primary me-2" aria-label="Ver promociones">
-                        <i class="fas fa-percentage"></i> Promociones
-                    </a>
-                </div>
             </div>
         </div>
     </nav>
@@ -86,8 +92,12 @@
         <div class="row">
             <!-- Marca y descripción -->
             <div class="col-lg-4 col-md-6 mb-4">
-                <h5 class="fw-bold mb-3">
-                    <i class="fas fa-running me-2" style="color:#ff6600;"></i>Melosport
+                <h5 class="fw-bold mb-3 d-flex align-items-center">
+                    <img src="{% static 'img/Logo sin fondo blanco.png' %}"
+                         alt="Melosport"
+                         height="32"
+                         class="me-2">
+                    <span>Melosport</span>
                 </h5>
                 <p class="small text-light-50">
                     Tu tienda especializada en productos deportivos de alta calidad.
@@ -116,11 +126,11 @@
                     </li>
                     <li class="mb-2">
                         <i class="fas fa-file-contract me-2" style="color:#ff6600;"></i>
-                        <a href="#" class="text-light text-decoration-none hover-underline">Políticas</a>
+                        <a href="{% url 'terminos' %}" class="text-light text-decoration-none hover-underline">Términos y Políticas</a>
                     </li>
                     <li class="mb-2">
                         <i class="fas fa-balance-scale me-2" style="color:#ff6600;"></i>
-                        <a href="#" class="text-light text-decoration-none hover-underline">Términos y condiciones</a>
+                        <a href="{% url 'terminos' %}" class="text-light text-decoration-none hover-underline">Términos y Políticas</a>
                     </li>
                     <li>
                         <i class="fas fa-question-circle me-2" style="color:#ff6600;"></i>
